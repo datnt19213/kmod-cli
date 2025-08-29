@@ -1,0 +1,348 @@
+{
+  "access-denied": {
+    "path": "component-templates/components/access-denied.tsx",
+    "dependencies": [
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "breadcumb": {
+    "path": "component-templates/components/breadcumb.tsx",
+    "dependencies": [
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "count-down": {
+    "path": "component-templates/hooks/count-down.ts",
+    "dependencies": [
+      "zustand"
+    ],
+    "devDependencies": []
+  },
+  "count-input": {
+    "path": "component-templates/components/count-input.tsx",
+    "dependencies": [
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "button": {
+    "path": "component-templates/components/datetime-picker/button.tsx",
+    "dependencies": [
+      "class-variance-authority",
+      "@radix-ui/react-slot"
+    ],
+    "devDependencies": []
+  },
+  "calendar": {
+    "path": "component-templates/components/datetime-picker/calendar.tsx",
+    "dependencies": [
+      "lucide-react",
+      "react-day-picker"
+    ],
+    "devDependencies": []
+  },
+  "date-input": {
+    "path": "component-templates/components/date-range-calendar/date-input.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "date-range-picker": {
+    "path": "component-templates/components/date-range-calendar/date-range-picker.tsx",
+    "dependencies": [
+      "@radix-ui/react-icons"
+    ],
+    "devDependencies": []
+  },
+  "label": {
+    "path": "component-templates/components/datetime-picker/label.tsx",
+    "dependencies": [
+      "class-variance-authority",
+      "@radix-ui/react-label"
+    ],
+    "devDependencies": []
+  },
+  "popover": {
+    "path": "component-templates/components/datetime-picker/popover.tsx",
+    "dependencies": [
+      "@radix-ui/react-popover"
+    ],
+    "devDependencies": []
+  },
+  "select": {
+    "path": "component-templates/components/datetime-picker/select.tsx",
+    "dependencies": [
+      "@radix-ui/react-icons",
+      "@radix-ui/react-select"
+    ],
+    "devDependencies": []
+  },
+  "switch": {
+    "path": "component-templates/components/date-range-calendar/switch.tsx",
+    "dependencies": [
+      "@radix-ui/react-switch"
+    ],
+    "devDependencies": []
+  },
+  "datetime-picker": {
+    "path": "component-templates/components/datetime-picker/datetime-picker.tsx",
+    "dependencies": [
+      "date-fns",
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "input": {
+    "path": "component-templates/components/datetime-picker/input.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "period-input": {
+    "path": "component-templates/components/datetime-picker/period-input.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "time-picker-input": {
+    "path": "component-templates/components/datetime-picker/time-picker-input.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "time-picker-utils": {
+    "path": "component-templates/components/datetime-picker/time-picker-utils.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "time-picker": {
+    "path": "component-templates/components/datetime-picker/time-picker.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "gradient-outline": {
+    "path": "component-templates/components/gradient-outline.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "gradient-svg": {
+    "path": "component-templates/components/gradient-svg.tsx",
+    "dependencies": [
+      "react-svg"
+    ],
+    "devDependencies": []
+  },
+  "grid-layout": {
+    "path": "component-templates/components/grid-layout.tsx",
+    "dependencies": [
+      "tailwind-merge"
+    ],
+    "devDependencies": []
+  },
+  "hydrate-guard": {
+    "path": "component-templates/components/hydrate-guard.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "image": {
+    "path": "component-templates/components/image.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "loader-slash-gradient": {
+    "path": "component-templates/components/loader-slash-gradient.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "masonry-gallery": {
+    "path": "component-templates/components/masonry-gallery.tsx",
+    "dependencies": [
+      "lucide-react",
+      "react-loading-skeleton",
+      "react-responsive-masonry"
+    ],
+    "devDependencies": []
+  },
+  "modal": {
+    "path": "component-templates/components/modal.tsx",
+    "dependencies": [
+      "react-dom"
+    ],
+    "devDependencies": []
+  },
+  "multi-select": {
+    "path": "component-templates/components/multi-select.tsx",
+    "dependencies": [
+      "class-variance-authority",
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "non-hydration": {
+    "path": "component-templates/components/non-hydration.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "portal": {
+    "path": "component-templates/components/portal.tsx",
+    "dependencies": [
+      "react-dom"
+    ],
+    "devDependencies": []
+  },
+  "segments-circle": {
+    "path": "component-templates/components/segments-circle.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "single-select": {
+    "path": "component-templates/components/single-select.tsx",
+    "dependencies": [
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "stroke-circle": {
+    "path": "component-templates/components/stroke-circle.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "column-table": {
+    "path": "component-templates/components/table/column-table.tsx",
+    "dependencies": [
+      "@tanstack/react-table"
+    ],
+    "devDependencies": []
+  },
+  "data-table": {
+    "path": "component-templates/components/table/data-table.tsx",
+    "dependencies": [
+      "@tanstack/react-table",
+      "@tanstack/table-core"
+    ],
+    "devDependencies": []
+  },
+  "readme": {
+    "path": "component-templates/components/table/readme.tsx",
+    "dependencies": [
+      "@tanstack/react-table"
+    ],
+    "devDependencies": []
+  },
+  "table": {
+    "path": "component-templates/components/table/table.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "text-hover-effect": {
+    "path": "component-templates/components/text-hover-effect.tsx",
+    "dependencies": [
+      "motion/react"
+    ],
+    "devDependencies": []
+  },
+  "timout-loader": {
+    "path": "component-templates/components/timout-loader.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "toast": {
+    "path": "component-templates/components/toast.tsx",
+    "dependencies": [
+      "react-dom",
+      "lucide-react"
+    ],
+    "devDependencies": []
+  },
+  "config": {
+    "path": "component-templates/configs/config.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "feature-config": {
+    "path": "component-templates/configs/feature-config.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "keys": {
+    "path": "component-templates/configs/keys.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "api-service": {
+    "path": "component-templates/core/api-service.ts",
+    "dependencies": [
+      "axios"
+    ],
+    "devDependencies": []
+  },
+  "calculate": {
+    "path": "component-templates/core/calculate.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "idb": {
+    "path": "component-templates/core/idb.ts",
+    "dependencies": [
+      "idb"
+    ],
+    "devDependencies": []
+  },
+  "storage": {
+    "path": "component-templates/core/storage.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "fade-on-scroll": {
+    "path": "component-templates/hooks/fade-on-scroll.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "safe-action": {
+    "path": "component-templates/hooks/safe-action.ts",
+    "dependencies": [
+      "lodash"
+    ],
+    "devDependencies": []
+  },
+  "spam-guard": {
+    "path": "component-templates/hooks/spam-guard.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "utils": {
+    "path": "component-templates/lib/utils.ts",
+    "dependencies": [
+      "clsx",
+      "tailwind-merge"
+    ],
+    "devDependencies": []
+  },
+  "feature-guard": {
+    "path": "component-templates/providers/feature-guard.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "query": {
+    "path": "component-templates/queries/query.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "color-by-text": {
+    "path": "component-templates/utils/colors/color-by-text.ts",
+    "dependencies": [
+      "unidecode"
+    ],
+    "devDependencies": []
+  },
+  "stripe-effect": {
+    "path": "component-templates/utils/colors/stripe-effect.ts",
+    "dependencies": [],
+    "devDependencies": []
+  },
+  "hash-aes": {
+    "path": "component-templates/utils/hash/hash-aes.ts",
+    "dependencies": [
+      "crypto-js"
+    ],
+    "devDependencies": []
+  }
+}
