@@ -28,7 +28,7 @@ export const Breadcrumbs: React.FC<BreadcrumbProps> = ({ items, indicator, class
         <nav className={cn("text-muted-foreground flex items-center space-x-1 text-sm", classNames?.container)} aria-label="Breadcrumb">
             {items.map((item, index) => (
                 <React.Fragment key={index}>
-                    {index !== 0 && indicator && <ChevronRight className={cn("text-muted-foreground h-4 w-4", classNames?.indicator)} />}
+                    {index !== 0 && (indicator || <ChevronRight className={cn("text-muted-foreground h-4 w-4", classNames?.indicator)} />)}
                     {item.href && !item.isCurrent && item.as === "link" ? (
                         <Link href={item.href} className={cn("hover:text-foreground transition-colors", classNames?.label)}>
                             {item.label}
@@ -38,7 +38,7 @@ export const Breadcrumbs: React.FC<BreadcrumbProps> = ({ items, indicator, class
                             {item.label}
                         </a>
                     ) : (
-                        <span className="text-foreground font-medium">{item.label}</span>
+                        <span className={cn("text-foreground font-medium",classNames?.label)}>{item.label}</span>
                     )}
                 </React.Fragment>
             ))}
