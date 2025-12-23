@@ -70,7 +70,7 @@ export const REGEXS = {
    * /^[a-zA-Z0-9\s.,#\/-]+$/
    * @example "123 Main St, Anytown, USA"
    */
-  address: /^[a-zA-Z0-9\s.,#\/-]+$/,
+  address: /^[a-zA-ZÀ-ỹ0-9\s.,#\/-]+$/,
   /**
    * /^(true|false|0|1)$/
    * @example "true"
