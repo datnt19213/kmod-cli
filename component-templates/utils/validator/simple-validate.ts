@@ -165,7 +165,7 @@ export const useFormValidator = <T extends Record<string, any>>(
       }
     }
 
-    setErrors(newErrors);
+    setErrors({...errors, ...newErrors});
     return isValid;
   };
 
