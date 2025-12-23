@@ -286,6 +286,14 @@
     ],
     "devDependencies": []
   },
+  "lib": {
+    "path": "component-templates/core/lib.ts",
+    "dependencies": [
+      "clsx",
+      "tailwind-merge"
+    ],
+    "devDependencies": []
+  },
   "storage": {
     "path": "component-templates/core/storage.ts",
     "dependencies": [],
@@ -321,6 +329,13 @@
     "dependencies": [],
     "devDependencies": []
   },
+  "refine-provider": {
+    "path": "component-templates/providers/refine-provider.tsx",
+    "dependencies": [
+      "axios"
+    ],
+    "devDependencies": []
+  },
   "query": {
     "path": "component-templates/queries/query.tsx",
     "dependencies": [],
@@ -338,11 +353,23 @@
     "dependencies": [],
     "devDependencies": []
   },
+  "kookies": {
+    "path": "component-templates/utils/cookies/kookies.ts",
+    "dependencies": [
+      "js-cookie"
+    ],
+    "devDependencies": []
+  },
   "hash-aes": {
     "path": "component-templates/utils/hash/hash-aes.ts",
     "dependencies": [
       "crypto-js"
     ],
+    "devDependencies": []
+  },
+  "simple-validate": {
+    "path": "component-templates/utils/validator/simple-validate.ts",
+    "dependencies": [],
     "devDependencies": []
   }
 }
