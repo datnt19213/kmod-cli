@@ -431,7 +431,7 @@ class DataProvider {
         const response = await this.httpClient.get<T>(url, meta);
         
         // Handle wrapped response
-        const data = (response.data as any)?.data || response.data;
+        const data = (response.data as any) || response
         
         return { data };
       });
@@ -489,7 +489,7 @@ class DataProvider {
         const response = await this.httpClient.post<T>(url, variables, meta);
         
         // Handle wrapped response
-        const data = (response.data as any)?.data || response.data;
+        const data = (response.data as any) || response
         
         return { data };
       });
@@ -544,7 +544,7 @@ class DataProvider {
         const response = await this.httpClient.patch<T>(url, variables, meta);
         
         // Handle wrapped response
-        const data = (response.data as any)?.data || response.data;
+        const data = (response.data as any) || response
         
         return { data };
       });
@@ -603,7 +603,7 @@ class DataProvider {
         const response = await this.httpClient.delete<T>(url, meta);
         
         // Handle wrapped response
-        const data = (response.data as any)?.data || response.data;
+        const data = (response.data as any) || response
         
         return { data };
       });
