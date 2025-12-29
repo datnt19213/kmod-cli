@@ -1,5 +1,7 @@
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useState,
 } from 'react';
@@ -9,6 +11,7 @@ import axios, {
   AxiosInstance,
   AxiosRequestConfig,
 } from 'axios';
+import Cookies from 'js-cookie';
 
 // ============ TYPES ============
 
@@ -135,6 +138,7 @@ export interface DataProviderOptions {
   cacheTime?: number;
   retryCount?: number;
   retryDelay?: number;
+  debug?: boolean;
 }
 
 interface CacheItem<T = any> {
@@ -156,8 +160,54 @@ export interface UseMutationOptions<TData = any> {
   onError?: (error: DataProviderError) => void;
 }
 
+// ============ UTILITY FUNCTIONS ============
+
+/**
+ * Safely normalize API response data
+ */
+function normalizeResponseData<T>(response: any): T[] {
+  // Case 1: Direct array response
+  if (Array.isArray(response)) {
+    return response;
+  }
+  
+  // Case 2: Object with 'data' property
+  if (response && typeof response === 'object') {
+    return response
+  }
+  
+  // Fallback: empty array
+  console.warn('Unable to extract array data from response:', response);
+  return [];
+}
+
+/**
+ * Extract total count from response
+ */
+function extractTotalCount(response: any, dataLength: number): number {
+  // Check headers first
+  if (response.headers?.['x-total-count']) {
+    const count = parseInt(response.headers['x-total-count'], 10);
+    if (!isNaN(count)) return count;
+  }
+  
+  // Check response body
+  const data = response.data;
+  if (data && typeof data === 'object') {
+    if (typeof data.total === 'number') return data.total;
+    if (typeof data.totalCount === 'number') return data.totalCount;
+    if (typeof data.count === 'number') return data.count;
+  }
+  
+  // Fallback to data length
+  return dataLength;
+}
+
 // ============ DATA PROVIDER CLASS ============
 
+/**
+ * DataProvider class for handling API requests with caching and retry mechanisms
+ */
 class DataProvider {
   private apiUrl: string;
   private httpClient: AxiosInstance;
@@ -169,15 +219,22 @@ class DataProvider {
     httpClient: AxiosInstance = axios, 
     options: DataProviderOptions = {}
   ) {
-    this.apiUrl = apiUrl;
+    this.apiUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
     this.httpClient = httpClient;
     this.cache = new Map();
     this.options = {
       cacheTime: 5 * 60 * 1000,
       retryCount: 3,
       retryDelay: 1000,
+      debug: false,
       ...options
     };
+  }
+
+  private log(message: string, data?: any): void {
+    if (this.options.debug) {
+      console.log(`[DataProvider] ${message}`, data || '');
+    }
   }
 
   // Cache helpers
@@ -192,9 +249,11 @@ class DataProvider {
     const now = Date.now();
     if (now - cached.timestamp > this.options.cacheTime) {
       this.cache.delete(key);
+      this.log('Cache expired', key);
       return null;
     }
     
+    this.log('Cache hit', key);
     return cached.data as T;
   }
 
@@ -203,19 +262,34 @@ class DataProvider {
       data,
       timestamp: Date.now()
     });
+    this.log('Cache set', key);
   }
 
-  public invalidateCache(resource: string): void {
+  public invalidateCache(resource: string, id?: string | number): void {
     const keys = Array.from(this.cache.keys());
-    keys.forEach(key => {
-      if (key.startsWith(`${resource}:`)) {
-        this.cache.delete(key);
-      }
-    });
+    
+    if (id !== undefined) {
+      // Invalidate specific item and related lists
+      keys.forEach(key => {
+        if (key.startsWith(`${resource}:`) || key.startsWith(`${resource}/${id}:`)) {
+          this.cache.delete(key);
+          this.log('Cache invalidated', key);
+        }
+      });
+    } else {
+      // Invalidate entire resource
+      keys.forEach(key => {
+        if (key.startsWith(`${resource}:`)) {
+          this.cache.delete(key);
+          this.log('Cache invalidated', key);
+        }
+      });
+    }
   }
 
   public clearAllCache(): void {
     this.cache.clear();
+    this.log('All cache cleared');
   }
 
   // Retry logic
@@ -228,7 +302,7 @@ class DataProvider {
     } catch (error) {
       if (retries <= 0) throw error;
       
-      // Không retry với lỗi 4xx (client errors)
+      // Don't retry on 4xx errors (client errors)
       const axiosError = error as AxiosError;
       if (
         axiosError.response && 
@@ -237,6 +311,8 @@ class DataProvider {
       ) {
         throw error;
       }
+      
+      this.log(`Retrying... (${this.options.retryCount - retries + 1}/${this.options.retryCount})`);
       
       await new Promise(resolve => 
         setTimeout(resolve, this.options.retryDelay)
@@ -308,25 +384,19 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
-        const response = await this.httpClient.get<T[] | { data: T[], total: number }>(
-          url, 
-          { 
-            params: query,
-            ...meta 
-          }
-        );
+        this.log(`GET ${url}`, query);
         
-        const isArrayResponse = Array.isArray(response.data);
-        const data = isArrayResponse ? response.data : (response.data as any).data || [];
+        const response = await this.httpClient.get(url, { 
+          params: query,
+          ...meta 
+        });
         
-        const total = response.headers['x-total-count'] 
-          ? parseInt(response.headers['x-total-count'] as string) 
-          : (isArrayResponse ? data.length : (response.data as any).total || 0);
+        const data = normalizeResponseData<T>(response.data);
+        const total = extractTotalCount(response, data.length);
         
-        return { 
-          data: Array.isArray(data) ? data : [],
-          total 
-        };
+        this.log(`Response: ${data.length} items, total: ${total}`);
+        
+        return { data, total };
       });
       
       if (useCache) {
@@ -335,6 +405,7 @@ class DataProvider {
       
       return result;
     } catch (error) {
+      this.log('Error in getList', error);
       throw this.handleError(error);
     }
   }
@@ -356,8 +427,13 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`GET ${url}`);
         const response = await this.httpClient.get<T>(url, meta);
-        return { data: response.data };
+        
+        // Handle wrapped response
+        const data = (response.data as any)?.data || response.data;
+        
+        return { data };
       });
       
       if (useCache) {
@@ -366,6 +442,7 @@ class DataProvider {
       
       return result;
     } catch (error) {
+      this.log('Error in getOne', error);
       throw this.handleError(error);
     }
   }
@@ -380,17 +457,21 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
-        const response = await this.httpClient.get<T[]>(url, {
+        this.log(`GET ${url} with ids`, ids);
+        
+        const response = await this.httpClient.get(url, {
           params: { id: ids },
           ...meta
         });
-        return { 
-          data: Array.isArray(response.data) ? response.data : [] 
-        };
+        
+        const data = normalizeResponseData<T>(response.data);
+        
+        return { data };
       });
       
       return result;
     } catch (error) {
+      this.log('Error in getMany', error);
       throw this.handleError(error);
     }
   }
@@ -404,13 +485,19 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`POST ${url}`, variables);
         const response = await this.httpClient.post<T>(url, variables, meta);
-        return { data: response.data };
+        
+        // Handle wrapped response
+        const data = (response.data as any)?.data || response.data;
+        
+        return { data };
       });
       
       this.invalidateCache(resource);
       return result;
     } catch (error) {
+      this.log('Error in create', error);
       throw this.handleError(error);
     }
   }
@@ -423,17 +510,23 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`POST MANY ${this.apiUrl}/${resource}`, variables);
+        
         const responses = await Promise.all(
           variables.map(variable =>
             this.httpClient.post<T>(`${this.apiUrl}/${resource}`, variable, meta)
           )
         );
-        return { data: responses.map(r => r.data) };
+        
+        const data = responses.map(r => (r.data as any)?.data || r.data);
+        
+        return { data };
       });
       
       this.invalidateCache(resource);
       return result;
     } catch (error) {
+      this.log('Error in createMany', error);
       throw this.handleError(error);
     }
   }
@@ -447,13 +540,19 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`PATCH ${url}`, variables);
         const response = await this.httpClient.patch<T>(url, variables, meta);
-        return { data: response.data };
+        
+        // Handle wrapped response
+        const data = (response.data as any)?.data || response.data;
+        
+        return { data };
       });
       
-      this.invalidateCache(resource);
+      this.invalidateCache(resource, id);
       return result;
     } catch (error) {
+      this.log('Error in update', error);
       throw this.handleError(error);
     }
   }
@@ -466,6 +565,8 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`PATCH MANY ${this.apiUrl}/${resource}`, { ids, variables });
+        
         const responses = await Promise.all(
           ids.map(id =>
             this.httpClient.patch<T>(
@@ -475,12 +576,16 @@ class DataProvider {
             )
           )
         );
-        return { data: responses.map(r => r.data) };
+        
+        const data = responses.map(r => (r.data as any)?.data || r.data);
+        
+        return { data };
       });
       
-      this.invalidateCache(resource);
+      ids.forEach(id => this.invalidateCache(resource, id));
       return result;
     } catch (error) {
+      this.log('Error in updateMany', error);
       throw this.handleError(error);
     }
   }
@@ -494,13 +599,19 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`DELETE ${url}`);
         const response = await this.httpClient.delete<T>(url, meta);
-        return { data: response.data };
+        
+        // Handle wrapped response
+        const data = (response.data as any)?.data || response.data;
+        
+        return { data };
       });
       
-      this.invalidateCache(resource);
+      this.invalidateCache(resource, id);
       return result;
     } catch (error) {
+      this.log('Error in deleteOne', error);
       throw this.handleError(error);
     }
   }
@@ -513,17 +624,23 @@ class DataProvider {
     
     try {
       const result = await this.retryRequest(async () => {
+        this.log(`DELETE MANY ${this.apiUrl}/${resource}`, ids);
+        
         const responses = await Promise.all(
           ids.map(id =>
             this.httpClient.delete<T>(`${this.apiUrl}/${resource}/${id}`, meta)
           )
         );
-        return { data: responses.map(r => r.data) };
+        
+        const data = responses.map(r => (r.data as any)?.data || r.data);
+        
+        return { data };
       });
       
-      this.invalidateCache(resource);
+      ids.forEach(id => this.invalidateCache(resource, id));
       return result;
     } catch (error) {
+      this.log('Error in deleteMany', error);
       throw this.handleError(error);
     }
   }
@@ -533,16 +650,22 @@ class DataProvider {
     
     try {
       return await this.retryRequest(async () => {
+        const fullUrl = url.startsWith('http') ? url : `${this.apiUrl}${url}`;
+        this.log(`${method.toUpperCase()} ${fullUrl}`, { payload, query });
+        
         const response = await this.httpClient<T>({
-          url: `${this.apiUrl}${url}`,
+          url: fullUrl,
           method,
           data: payload,
           params: query,
           headers,
         });
-        return { data: response.data };
+
+        
+        return { data: (response?.data as any) || response };
       });
     } catch (error) {
+      this.log('Error in custom', error);
       throw this.handleError(error);
     }
   }
@@ -551,14 +674,19 @@ class DataProvider {
     const axiosError = error as AxiosError<any>;
     
     if (axiosError.response) {
+      const responseData = axiosError.response.data;
+      
       return {
-        message: axiosError.response.data?.message || axiosError.message || 'Request failed',
+        message: responseData?.message || 
+                 responseData?.error || 
+                 axiosError.message || 
+                 'Request failed',
         statusCode: axiosError.response.status,
-        errors: axiosError.response.data?.errors,
+        errors: responseData?.errors || responseData?.details,
       };
     } else if (axiosError.request) {
       return {
-        message: 'Network error',
+        message: 'Network error - no response received',
         statusCode: 0,
       };
     }
@@ -570,24 +698,30 @@ class DataProvider {
   }
 }
 
+export const DataProviderContext = createContext<DataProvider | null>(null);
+
 // ============ REACT HOOKS ============
 
 export function useList<T = any>(
-  dataProvider: DataProvider,
   resource: string,
   params: GetListParams = {},
   options: UseListOptions = {}
 ) {
-  const [data, setData] = useState<T[]>([]);
+  const [data, setData] = useState<T[] | T | any | null>(null);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<DataProviderError | null>(null);
+
+  const dataProvider = useDataProvider();
   
   const { refetchInterval, enabled = true } = options;
   const paramsStr = JSON.stringify(params);
   
   const refetch = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -615,11 +749,10 @@ export function useList<T = any>(
     }
   }, [refetchInterval, refetch, enabled]);
   
-  return { data, total, loading, error, refetch };
+  return { data: data || [], total, loading, error, refetch };
 }
 
 export function useOne<T = any>(
-  dataProvider: DataProvider,
   resource: string,
   id: string | number | null | undefined,
   options: UseOneOptions = {}
@@ -627,6 +760,8 @@ export function useOne<T = any>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<DataProviderError | null>(null);
+
+  const dataProvider = useDataProvider();
   
   const { enabled = true } = options;
   
@@ -657,13 +792,14 @@ export function useOne<T = any>(
 }
 
 export function useCreate<T = any, V = any>(
-  dataProvider: DataProvider,
   resource: string,
   options: UseMutationOptions<T> = {}
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
   
+  const dataProvider = useDataProvider();
+
   const { onSuccess, onError } = options;
   
   const mutate = useCallback(async (variables: V): Promise<T> => {
@@ -692,12 +828,13 @@ export function useCreate<T = any, V = any>(
 }
 
 export function useUpdate<T = any, V = any>(
-  dataProvider: DataProvider,
   resource: string,
   options: UseMutationOptions<T> = {}
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
+
+  const dataProvider = useDataProvider();
   
   const { onSuccess, onError } = options;
   
@@ -730,12 +867,13 @@ export function useUpdate<T = any, V = any>(
 }
 
 export function useDelete<T = any>(
-  dataProvider: DataProvider,
   resource: string,
   options: UseMutationOptions<T> = {}
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
+
+  const dataProvider = useDataProvider();
   
   const { onSuccess, onError } = options;
   
@@ -767,165 +905,290 @@ export function useDelete<T = any>(
   return { mutate, loading, error };
 }
 
+export function useCustom<T = any>(
+  resource: string,
+  options: UseMutationOptions<T> = {}
+) {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<DataProviderError | null>(null);
+  const [customData, setCustomData] = useState<T | null>(null);
+
+  const dataProvider = useDataProvider();
+  
+  const { onSuccess, onError } = options;
+  
+  const mutate = useCallback(
+    async (variables: any): Promise<T> => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const result = await dataProvider.custom<T>({ url: resource, ...variables });
+        if (onSuccess) {
+          onSuccess(result.data);
+        }
+        setCustomData(result.data);
+        return result.data;
+      } catch (err) {
+        const errorObj = err as DataProviderError;
+        setError(errorObj);
+        if (onError) {
+          onError(errorObj);
+        }
+        throw errorObj;
+      } finally {
+        setLoading(false);
+      }
+    }, 
+    [dataProvider, resource, onSuccess, onError]
+  );
+  
+  return { mutate, loading, error, data: customData };
+}
+
 export default DataProvider;
 
-/* ============ VÍ DỤ SỬ DỤNG ============
-
-// 1. Setup DataProvider
-import DataProvider, { useList, useOne, useCreate, useUpdate, useDelete } from './DataProvider';
-import axios from 'axios';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
-
-interface CreateUserInput {
-  name: string;
-  email: string;
-  status?: 'active' | 'inactive';
-}
-
-const axiosInstance = axios.create({
-  baseURL: 'https://api.example.com',
-});
-
-axiosInstance.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-const dataProvider = new DataProvider('', axiosInstance, {
-  cacheTime: 5 * 60 * 1000,
-  retryCount: 3,
-  retryDelay: 1000
-});
-
-// 2. Sử dụng trong component
-function UsersList() {
-  const [page, setPage] = useState(1);
-  
-  const { data, total, loading, error, refetch } = useList<User>(
-    dataProvider,
-    'users',
-    {
-      pagination: { current: page, pageSize: 10 },
-      sorters: [{ field: 'createdAt', order: 'desc' }],
-      filters: [{ field: 'status', operator: 'eq', value: 'active' }]
-    },
-    { refetchInterval: 30000 }
+export const DataProviderContainer: React.FC<{
+  dataProvider: DataProvider;
+  children: React.ReactNode;
+}> = ({ dataProvider, children }) => {
+  return (
+    <DataProviderContext.Provider value={dataProvider}>
+      {children}
+    </DataProviderContext.Provider>
   );
-  
-  const { mutate: createUser, loading: creating } = useCreate<User, CreateUserInput>(
-    dataProvider,
-    'users',
-    {
-      onSuccess: (data) => {
-        console.log('Created:', data);
-        refetch();
-      },
-      onError: (err) => {
-        console.error('Error:', err);
+};
+
+export const useDataProvider = () => {
+  const ctx = useContext(DataProviderContext);
+  if (!ctx) {
+    throw new Error(
+      "useDataProvider must be used inside <DataProviderContainer />"
+    );
+  }
+  return ctx;
+};
+
+/**
+ * Create HTTP client with authentication
+ */
+export function createHttpClient(
+  baseURL: string, 
+  authTokenKey: string = 'token',
+  authTokenStorage: 'localStorage' | 'sessionStorage' | 'cookie' = 'cookie',
+  typeAuthorization: "Bearer" | "Basic" | string = "Bearer"
+): AxiosInstance {
+  const axiosInstance = axios.create({
+    baseURL: baseURL || 'https://api.example.com',
+  });
+
+  axiosInstance.interceptors.request.use(config => {
+    let token: string | null = null;
+    
+    if (authTokenStorage === 'localStorage') {
+      token = localStorage.getItem(authTokenKey);
+    } else if (authTokenStorage === 'sessionStorage') {
+      token = sessionStorage.getItem(authTokenKey);
+    } else if (authTokenStorage === 'cookie') {
+      const match = document.cookie.match(new RegExp('(^| )' + authTokenKey + '=([^;]+)'));
+      if (match) token = match[2];
+    }
+    
+    if (token) {
+      config.headers.Authorization = `${typeAuthorization} ${token}`;
+    }
+    
+    return config;
+  });
+
+  return axiosInstance;
+}
+
+// ================================ AUTH ================================
+
+
+export interface AuthUser {
+  id: string | number;
+  email?: string;
+  username?: string;
+  role?: string;
+  [key: string]: any;
+}
+
+export interface LoginPayload {
+  username?: string;
+  email?: string;
+  password: string;
+}
+
+interface AuthContextValue {
+  user: AuthUser | null;
+  token: string | null | undefined;
+  isAuthenticated: () => boolean;
+  setUser: (user: AuthUser | null) => void;
+  login: (payload: LoginPayload, type?: "full" | "simple") => Promise<any>;
+  logout: () => void;
+  getMe: (type?: "full" | "simple") => Promise<any>;
+}
+
+export interface AuthProviderProps {
+  children: React.ReactNode;
+  loginUrl: string;
+  meUrl: string;
+  tokenKey: string;
+}
+
+export type TypeResponse = "full" | "simple";
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used inside <AuthProvider />");
+  }
+  return ctx;
+};
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({
+  children,
+  loginUrl = '/auth/login',
+  meUrl = '/auth/me',
+  tokenKey = 'token',
+}) => {
+  const dataProvider = useDataProvider();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  const login = useCallback(async (payload: LoginPayload, type: TypeResponse = "full") => {
+      try {
+        const res = await dataProvider.custom<any>({
+          url: loginUrl,
+          method: "post",
+          payload,
+        });
+
+        if (type === "simple") {
+          return res.data;
+        }
+        return res;
+      } catch (error) {
+        throw error;
       }
     }
-  );
-  
-  const { mutate: updateUser } = useUpdate<User, Partial<User>>(
-    dataProvider,
-    'users',
-    {
-      onSuccess: () => refetch()
-    }
-  );
-  
-  const { mutate: deleteUser } = useDelete<User>(
-    dataProvider,
-    'users',
-    {
-      onSuccess: () => refetch()
-    }
-  );
-  
-  const handleCreate = async () => {
+  , [dataProvider, loginUrl]);
+
+  const logout = useCallback(() => {
+    cookiesProvider.remove(tokenKey);
+    localStorage.clear();
+    sessionStorage.clear();
+    dataProvider.clearAllCache();
+  }, [dataProvider]);
+
+  const isAuthenticated = () => {
+    return (cookiesProvider.get(tokenKey) !== null && cookiesProvider.get(tokenKey) !== undefined && cookiesProvider.get(tokenKey) !== "" && typeof cookiesProvider.get(tokenKey) === "string" && user !== null) ? true : false;
+  };
+  const getToken = useCallback(() => {
+    return cookiesProvider.get(tokenKey);
+  }, [tokenKey]);
+
+  const getMe = useCallback(async (type?: TypeResponse) => {
     try {
-      await createUser({ 
-        name: 'John Doe', 
-        email: 'john@example.com',
-        status: 'active'
+      const res = await dataProvider.custom<AuthUser>({
+        url: meUrl,
+        method: 'get',
       });
-    } catch (err) {
-      // Error handled
-    }
-  };
-  
-  const handleUpdate = async (id: number) => {
-    try {
-      await updateUser(id, { name: 'Jane Doe' });
-    } catch (err) {
-      // Error handled
-    }
-  };
-  
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteUser(id);
-    } catch (err) {
-      // Error handled
-    }
-  };
-  
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-  
-  return (
-    <div>
-      <button onClick={handleCreate} disabled={creating}>
-        Create User
-      </button>
-      
-      {data.map(user => (
-        <div key={user.id}>
-          <span>{user.name}</span>
-          <button onClick={() => handleUpdate(user.id)}>Edit</button>
-          <button onClick={() => handleDelete(user.id)}>Delete</button>
-        </div>
-      ))}
-      
-      <button onClick={() => setPage(p => p - 1)} disabled={page === 1}>
-        Previous
-      </button>
-      <button onClick={() => setPage(p => p + 1)}>Next</button>
-      
-      <div>Total: {total}</div>
-    </div>
-  );
-}
 
-// 3. Chi tiết user
-function UserDetail({ userId }: { userId: number }) {
-  const { data, loading, error, refetch } = useOne<User>(
-    dataProvider,
-    'users',
-    userId
-  );
-  
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-  if (!data) return <div>No data</div>;
-  
-  return (
-    <div>
-      <h1>{data.name}</h1>
-      <p>{data.email}</p>
-      <button onClick={refetch}>Refresh</button>
-    </div>
-  );
-}
+      if (type === "simple") {
+        return res.data;
+      }
+      return res;
+    } catch {
+      return null;
+    }
+  }, [dataProvider, meUrl, logout]);
 
-*/
+  const value: AuthContextValue = {
+    user,
+    setUser,
+    token: getToken(),
+    isAuthenticated: isAuthenticated,
+    login,
+    logout,
+    getMe,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const cookiesProvider = {
+  set: (name: string, value: string, days?: number) => {
+    Cookies.set(name, value, {
+      expires: days || 365 * 100, // Default to 100 years if not specified
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+    });
+  },
+
+  get: (name: string): string | undefined => {
+    return Cookies.get(name);
+  },
+
+  remove: (name: string) => {
+    Cookies.remove(name, {path: "/"});
+  },
+
+  
+  exists: (name: string): boolean => {
+    return Cookies.get(name) !== undefined;
+  },
+};
+
+
+
+// =================== Example ===================
+
+// wrapped all into:
+// <DataProvider>
+//   <AuthProvider>
+//     <App />
+//   </AuthProvider>
+// </DataProvider>
+
+
+// use hooks to auth
+
+// const { login, logout, refresh } = useAuth();
+
+// use hook to call apis
+
+// const { data, isLoading, error } = useList<DataResponse>({
+//   url: '/route_name',
+// });
+
+// const { data, isLoading, error } = useOne<DataResponse>({
+//   url: '/route_name/:id',
+//   id: 1,
+// });
+
+// const { data, isLoading, error } = useCreate<DataResponse>({
+//   url: '/route_name',
+//   payload: {},
+// });
+
+// const { data, isLoading, error } = useUpdate<DataResponse>({
+//   url: '/route_name/:id',
+//   id: 1,
+//   payload: {},
+// });
+
+// const { data, isLoading, error } = useDelete<DataResponse>({
+//   url: '/route_name/:id',
+//   id: 1,
+// });
+
+// const { data, isLoading, error } = useCustom<DataResponse>({
+//   url: '/route_name',
+//   method: 'post',
+//   payload: {},
+// });

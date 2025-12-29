@@ -215,8 +215,7 @@
   "data-table": {
     "path": "component-templates/components/table/data-table.tsx",
     "dependencies": [
-      "@tanstack/react-table",
-      "@tanstack/table-core"
+      "@tanstack/react-table"
     ],
     "devDependencies": []
   },
@@ -332,7 +331,8 @@
   "refine-provider": {
     "path": "component-templates/providers/refine-provider.tsx",
     "dependencies": [
-      "axios"
+      "axios",
+      "js-cookie"
     ],
     "devDependencies": []
   },

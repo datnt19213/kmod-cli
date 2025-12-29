@@ -8,23 +8,22 @@ import {
   useState,
 } from 'react';
 
+// Nếu bạn cần alias cho ITable type, dùng:
+import type { Table as ITable } from '@tanstack/react-table';
 import {
+  Cell,
   ColumnDef,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
-import {
-  Cell,
   getSortedRowModel,
   Header,
   HeaderGroup,
   InitialTableState,
   Row,
-  Table as ITable,
-} from '@tanstack/table-core';
+  useReactTable,
+} from '@tanstack/react-table';
 
 import { cn } from '../../lib/utils';
 import {
@@ -40,6 +39,7 @@ export type TableHeaderClassNames = {
   header?: string;
   row?: string;
   head?: string;
+  content?: string;
 };
 export type TableBodyClassNames = {
   body?: string;
@@ -137,20 +137,6 @@ export type UseTableProps<TData, TValue> = {
   cellHeadProps?: TableHeadProps<TData>;
 };
 
-// export type Handles = {
-//   globalFilter?: () => void
-//   setGlobalFilter?: () => void
-//   sorting?: () => void
-//   setSorting?: () => void
-//   getColumn?: () => void
-//   previousPage?: () => void
-//   nextPage?: () => void
-//   getCanPreviousPage?: () => void
-//   getCanNextPage?: () => void
-//   pageIndex?: () => void
-//   pageSize?: () => void
-// }
-
 export type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -170,6 +156,8 @@ export type DataTableProps<TData, TValue> = {
   }) => ReactNode | ReactNode[];
   isLoading?: boolean;
   classNames?: TableClassNames;
+  alternate?: "even" | "odd";
+  alternateColor?: string;
   emptyLabel?: string;
   showSortIconHeader?: boolean;
   surfix?: ({
@@ -215,8 +203,10 @@ export function DataTable<TData, TValue>({
   enableSort = true,
   useTableProps,
   initialState,
-}: // handles
-DataTableProps<TData, TValue>) {
+  alternate = "even",
+  alternateColor = "#f5f5f5",
+  // handles
+}: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
@@ -242,34 +232,91 @@ DataTableProps<TData, TValue>) {
     pageSize: table.getState().pagination.pageSize,
   };
 
+  const getAlternateColor = (index: number) => {
+    if (alternate === "even") {
+      return index % 2 === 0 ? alternateColor : "";
+    } else {
+      return index % 2 === 0 ? "" : alternateColor;
+    }
+  };
+
+  const {
+  handleClick: tableHandleClick,
+  onClick: tableOnClick,
+  ...tableDomProps
+} = useTableProps?.tableProps || {};
+
+const {
+  handleClick: headerHandleClick,
+  onClick: headerOnClick,
+  ...headerDomProps
+} = useTableProps?.headerProps || {};
+const {
+  handleClick: rowHeadHandleClick,
+  onClick: rowHeadOnClick,
+  ...rowHeadDomProps
+} = useTableProps?.rowHeadProps || {};
+const {
+  handleClick: bodyHandleClick,
+  onClick: bodyOnClick,
+  ...bodyDomProps
+} = useTableProps?.bodyProps || {};
+const {
+  handleClick: rowBodyHandleClick,
+  onClick: rowBodyOnClick,
+  style: rowBodyStyle,
+  ...rowBodyDomProps
+} = useTableProps?.rowBodyProps || {};
+const {
+  handleClick: cellBodyHandleClick,
+  onClick: cellBodyOnClick,
+  ...cellBodyDomProps
+} = useTableProps?.cellBodyProps || {};
+
+const {
+  handleClick: skRowHandleClick,
+  ...skRowDomProps
+} = useTableProps?.rowBodyProps || {};
+
+const {
+  handleClick: skCellHandleClick,
+  ...skCellDomProps
+} = useTableProps?.cellBodyProps || {};
+
+
   return (
     <div className={cn("space-y-4", classNames?.wrapper)}>
       {toolbarTable && toolbarTable({ table, fns: toolbarFns })}
       <div className={cn(classNames?.container)}>
         <Table
           className={cn(classNames?.table)}
-          {...useTableProps?.tableProps}
-          onClick={(e) => useTableProps?.tableProps?.handleClick({ e, table })}
+          {...tableDomProps}
+          onClick={(e) => {
+            tableOnClick?.(e);
+            tableHandleClick?.({ e, table });
+          }}
         >
           <TableHeader
             className={cn(classNames?.header?.header)}
-            {...useTableProps?.headerProps}
-            onClick={(e) =>
-              useTableProps?.headerProps?.handleClick({ e, table })
-            }
+            {...headerDomProps}
+            onClick={(e) => {
+              headerOnClick?.(e);
+              headerHandleClick?.({ e, table });
+            }}
           >
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
                 className={cn(classNames?.header?.row)}
-                {...useTableProps?.rowHeadProps}
-                onClick={(e) =>
-                  useTableProps?.rowHeadProps?.handleClick({
+                {...rowHeadDomProps}
+                onClick={(e) => {
+                  rowHeadOnClick?.(e);
+                  rowHeadHandleClick?.({
                     e,
                     row: headerGroup,
                     table,
-                  })
-                }
+                  });
+                }}
               >
                 {headerGroup.headers.map((header) => (
                   <TableHead
@@ -283,6 +330,9 @@ DataTableProps<TData, TValue>) {
                       "cursor-pointer select-none",
                       classNames?.header?.head
                     )}
+                    style={{
+                      width: header.getSize() ? `${header.getSize()}px !important` : "auto",
+                    }}
                     onClick={(e) => {
                       // Just call the parent's onClick if provided
                       if (useTableProps?.cellHeadProps?.onClick) {
@@ -299,7 +349,7 @@ DataTableProps<TData, TValue>) {
                       }
                     }}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className={cn("flex items-center gap-1 w-fit", classNames?.header?.content)}>
                       {flexRender(
                         header.column.columnDef.header,
                         header.getContext()
@@ -316,8 +366,11 @@ DataTableProps<TData, TValue>) {
 
           <TableBody
             className={cn(classNames?.body?.body)}
-            {...useTableProps?.bodyProps}
-            onClick={(e) => useTableProps?.bodyProps?.handleClick({ e, table })}
+            {...bodyDomProps}
+            onClick={(e) => {
+              bodyOnClick?.(e);
+              bodyHandleClick?.({ e, table });
+            }}
           >
             {isLoading && (
               <TableSkeleton
@@ -330,61 +383,30 @@ DataTableProps<TData, TValue>) {
             )}
             {!isLoading &&
               table.getRowModel().rows.length > 0 &&
-              table.getRowModel().rows.map((row) => {
+              table.getRowModel().rows.map((row, index) => {
                 const { handleClick, onClick, ...rest } =
                   useTableProps?.rowBodyProps || {};
 
                 return (
                   <TableRow
-                    {...(() => {
-                      const { handleClick, onClick, ...rest } =
-                        useTableProps?.rowBodyProps || {};
-                      return rest;
-                    })()}
+                    {...rowBodyDomProps}
                     key={row.id}
+                    style={{...rowBodyStyle, backgroundColor: getAlternateColor(index)}}
                     className={cn(classNames?.body?.row)}
                     data-state={row.getIsSelected() && "selected"}
-                    // {...useTableProps?.rowBodyProps}
                     onClick={(e) => {
-                      // Just call the parent's onClick if provided
-                      if (useTableProps?.rowBodyProps?.onClick) {
-                        useTableProps.rowBodyProps.onClick(e);
-                      }
-
-                      // Just call the parent's handleClick if provided
-                      if (useTableProps?.rowBodyProps?.handleClick) {
-                        useTableProps.rowBodyProps.handleClick({
-                          e,
-                          row,
-                          table,
-                        });
-                      }
+                      rowBodyOnClick?.(e);
+                      rowBodyHandleClick?.({ e, row, table });
                     }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
-                        {...(() => {
-                          const { handleClick, onClick, ...rest } =
-                            useTableProps?.cellBodyProps || {};
-                          return rest;
-                        })()}
+                        {...cellBodyDomProps}
                         key={cell.id}
                         className={cn(classNames?.body?.cell)}
-                        // {...useTableProps?.cellBodyProps}
                         onClick={(e) => {
-                          // Just call the parent's onClick if provided
-                          if (useTableProps?.cellBodyProps?.onClick) {
-                            useTableProps.cellBodyProps.onClick(e);
-                          }
-
-                          // Just call the parent's handleClick if provided
-                          if (useTableProps?.cellBodyProps?.handleClick) {
-                            useTableProps.cellBodyProps.handleClick({
-                              e,
-                              cell,
-                              table,
-                            });
-                          }
+                          cellBodyOnClick?.(e);
+                          cellBodyHandleClick?.({ e, cell, table });
                         }}
                       >
                         {flexRender(
@@ -400,12 +422,12 @@ DataTableProps<TData, TValue>) {
               <TableRow
                 key="no-data"
                 className={cn(classNames?.body?.row)}
-                {...useTableProps?.rowBodyProps}
+                {...skRowDomProps}
               >
                 <TableCell
                   colSpan={columns.length}
                   className={cn("h-24 text-center", classNames?.body?.cell)}
-                  {...useTableProps?.cellBodyProps}
+                  {...skCellDomProps}
                 >
                   {emptyLabel}
                 </TableCell>
@@ -455,17 +477,30 @@ export const TableSkeleton = <TData, TValue>({
     };
   }, [isLoading]);
 
+  const {
+  handleClick: _rowHandleClick,
+  onClick: _rowOnClick,
+  ...rowDomProps
+} = props?.rowBodyProps || {};
+
+const {
+  handleClick: _cellHandleClick,
+  onClick: _cellOnClick,
+  ...cellDomProps
+} = props?.cellBodyProps || {};
+
+
   if (showNoData) {
     return (
       <TableRow
         key="no-data-skeleton"
         className={cn(classNames?.body?.row)}
-        {...props?.rowBodyProps}
+        {...rowDomProps}
       >
         <TableCell
           colSpan={columns.length}
           className={cn("h-24 text-center", classNames?.body?.cell)}
-          {...props?.cellBodyProps}
+          {...cellDomProps}
         >
           {emptyLabel}
         </TableCell>
@@ -478,13 +513,13 @@ export const TableSkeleton = <TData, TValue>({
         <TableRow
           key={`skeleton-${rowIndex}`}
           className={cn(classNames?.body?.row)}
-          {...props?.rowBodyProps}
+          {...rowDomProps}
         >
           {columns.map((_, colIndex) => (
             <TableCell
               key={`skeleton-${rowIndex}-${colIndex}`}
               className={cn(classNames?.body?.cell)}
-              {...props?.cellBodyProps}
+              {...cellDomProps}
             >
               <div className="shimmer h-4 w-full" />
             </TableCell>
@@ -494,3 +529,5 @@ export const TableSkeleton = <TData, TValue>({
     </>
   );
 };
+
+
