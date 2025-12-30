@@ -92,7 +92,7 @@ export interface DeleteManyParams {
 }
 
 export interface CustomParams {
-  url: string;
+  url?: string;
   method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
   payload?: any;
   query?: Record<string, any>;
@@ -159,6 +159,8 @@ export interface UseMutationOptions<TData = any> {
   onSuccess?: (data: TData) => void;
   onError?: (error: DataProviderError) => void;
 }
+
+export type Payload = any;
 
 // ============ UTILITY FUNCTIONS ============
 
@@ -646,8 +648,9 @@ class DataProvider {
   }
 
   async custom<T = any>(params: CustomParams): Promise<CustomResponse<T>> {
-    const { url, method = 'get', payload, query, headers } = params;
-    
+    const { url , method = 'get', payload, query, headers } = params;
+
+    if (!url) throw this.handleError("No url provided");
     try {
       return await this.retryRequest(async () => {
         const fullUrl = url.startsWith('http') ? url : `${this.apiUrl}${url}`;
@@ -793,7 +796,7 @@ export function useOne<T = any>(
 
 export function useCreate<T = any, V = any>(
   resource: string,
-  options: UseMutationOptions<T> = {}
+  options: UseMutationOptions<T>
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -807,7 +810,9 @@ export function useCreate<T = any, V = any>(
     setError(null);
     
     try {
-      const result = await dataProvider.create<T, V>(resource, { variables });
+      const result = await dataProvider.create<T, V>(resource, { 
+        variables
+       });
       if (onSuccess) {
         onSuccess(result.data);
       }
@@ -829,7 +834,7 @@ export function useCreate<T = any, V = any>(
 
 export function useUpdate<T = any, V = any>(
   resource: string,
-  options: UseMutationOptions<T> = {}
+  options: UseMutationOptions<T>
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -868,7 +873,7 @@ export function useUpdate<T = any, V = any>(
 
 export function useDelete<T = any>(
   resource: string,
-  options: UseMutationOptions<T> = {}
+  options: UseMutationOptions<T>
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -907,23 +912,29 @@ export function useDelete<T = any>(
 
 export function useCustom<T = any>(
   resource: string,
-  options: UseMutationOptions<T> = {}
+  options: UseMutationOptions<T> & CustomParams
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
   const [customData, setCustomData] = useState<T | null>(null);
 
   const dataProvider = useDataProvider();
-  
+
   const { onSuccess, onError } = options;
-  
+
   const mutate = useCallback(
-    async (variables: any): Promise<T> => {
+    async (variables?: Payload): Promise<T> => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        const result = await dataProvider.custom<T>({ url: resource, ...variables });
+        const result = await dataProvider.custom<T>({
+          url: resource,
+          payload: variables || options.payload || {},
+          method: options.method,
+          headers: options.headers,
+          query: options.query,
+        });
         if (onSuccess) {
           onSuccess(result.data);
         }
@@ -939,10 +950,10 @@ export function useCustom<T = any>(
       } finally {
         setLoading(false);
       }
-    }, 
+    },
     [dataProvider, resource, onSuccess, onError]
   );
-  
+
   return { mutate, loading, error, data: customData };
 }
 
