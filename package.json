@@ -1,6 +1,6 @@
 {
   "name": "kmod-cli",
-  "version": "1.4.11",
+  "version": "1.4.12",
   "description": "Stack components utilities fast setup in projects",
   "author": "kumo_d",
   "license": "MIT",
