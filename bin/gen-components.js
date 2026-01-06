@@ -65,4 +65,6 @@ const components = scanTemplates(templatesDir);
 
 fs.writeFileSync(outPath, JSON.stringify(components, null, 2));
 
+
+
 console.log(`✅ Generated components.json with ${Object.keys(components).length} entries`);

@@ -358,7 +358,9 @@
     "dependencies": [
       "js-cookie"
     ],
-    "devDependencies": []
+    "devDependencies": [
+      "@types/js-cookie"
+    ]
   },
   "hash-aes": {
     "path": "component-templates/utils/hash/hash-aes.ts",
