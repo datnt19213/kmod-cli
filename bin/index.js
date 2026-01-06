@@ -142,6 +142,41 @@ async function addComponents() {
   }
 }
 
+async function addComponentsByName(names) {
+  const collectedDeps = { deps: [], devDeps: [] };
+
+  for (const name of names) {
+    await copyComponent(name, collectedDeps);
+  }
+
+  collectedDeps.deps = [...new Set(collectedDeps.deps)];
+  collectedDeps.devDeps = [...new Set(collectedDeps.devDeps)];
+
+  if (collectedDeps.deps.length || collectedDeps.devDeps.length) {
+    console.log(`⚠️ Missing packages detected:`);
+
+    if (collectedDeps.deps.length)
+      console.log("  - deps:", collectedDeps.deps.join(", "));
+    if (collectedDeps.devDeps.length)
+      console.log("  - devDeps:", collectedDeps.devDeps.join(", "));
+
+    const { confirm } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "confirm",
+        message: "Install all missing packages now?",
+        default: true,
+      },
+    ]);
+
+    if (confirm) {
+      if (collectedDeps.deps.length) installDeps(collectedDeps.deps, false);
+      if (collectedDeps.devDeps.length) installDeps(collectedDeps.devDeps, true);
+    }
+  }
+}
+
+
 // ====================== CLI Commands ======================
 program
   .name("kumod")
@@ -149,5 +184,16 @@ program
   .version("1.0.0");
 
 program.command("add").description("Select components to add").action(addComponents);
+program
+  .command("add [components...]")
+  .description("Add components by name or select interactively")
+  .action(async (components) => {
+    if (components.length > 0) {
+      await addComponentsByName(components);
+    } else {
+      await addComponents();
+    }
+  });
+
 
 program.parse(process.argv);
