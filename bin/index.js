@@ -74,7 +74,7 @@ async function copyComponent(name, collectedDeps) {
   const dest = path.join(destBase, relPath);
 
   await fs.copy(src, dest, { overwrite: false });
-  console.log(`✅ Copied to src/custom/${relPath}`);
+  console.log(`✅ Installed: src/custom/${relPath}`);
 
   // Collect deps
   const userPkg = getUserPackageJson();
