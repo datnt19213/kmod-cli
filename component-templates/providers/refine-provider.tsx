@@ -217,16 +217,23 @@ class DataProvider {
   private options: Required<DataProviderOptions>;
 
   constructor(
-    apiUrl: string, 
-    httpClient: AxiosInstance = axios, 
+    httpClient: AxiosInstance = axios.create(), 
     options: DataProviderOptions = {}
   ) {
-    this.apiUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
     this.httpClient = httpClient;
+    
+    // Lấy baseURL từ httpClient
+    const baseURL = httpClient.defaults.baseURL || '';
+    this.apiUrl = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
+    
+    if (!this.apiUrl) {
+      console.warn('[DataProvider] No baseURL found in httpClient. Please set baseURL when creating httpClient.');
+    }
+    
     this.cache = new Map();
     this.options = {
       cacheTime: 5 * 60 * 1000,
-      retryCount: 3,
+      retryCount: 1,
       retryDelay: 1000,
       debug: false,
       ...options
@@ -653,11 +660,12 @@ class DataProvider {
     if (!url) throw this.handleError("No url provided");
     try {
       return await this.retryRequest(async () => {
-        const fullUrl = url.startsWith('http') ? url : `${this.apiUrl}${url}`;
-        this.log(`${method.toUpperCase()} ${fullUrl}`, { payload, query });
-        
+        // if url is not absolute, assume it's a relative path
+        const requestUrl = url.startsWith('http') ? url : url;
+        this.log(`${method.toUpperCase()} ${requestUrl}`, { payload, query });
+
         const response = await this.httpClient<T>({
-          url: fullUrl,
+          url: requestUrl,
           method,
           data: payload,
           params: query,
@@ -1199,7 +1207,7 @@ export const cookiesProvider = {
 // });
 
 // const { data, isLoading, error } = useCustom<DataResponse>({
-//   url: '/route_name',
+//   url: '/route_name or api_url/route/...',
 //   method: 'post',
 //   payload: {},
 // });
