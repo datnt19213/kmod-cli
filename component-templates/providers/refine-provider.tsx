@@ -1167,9 +1167,29 @@ export const cookiesProvider = {
 
 // =================== Example ===================
 
+// create httpClient
+
+// const TOKEN = "token";
+
+// const httpClient = createHttpClient(
+//   `${process.env.NEXT_PUBLIC_API_URL}`,
+//   TOKEN, --> key_name_cookie
+//   "cookie", --> storage
+//   "Bearer" --> prefix
+// );
+
+
+// create dataProvider
+
+// const dataProvider = useDataProvider(httpClient);
+
 // wrapped all into:
-// <DataProvider>
-//   <AuthProvider>
+// <DataProvider  dataProvider={dataProvider}>
+//   <AuthProvider 
+//      loginUrl={"/auth/login"} --> api_login 
+//      tokenKey={TOKEN} 
+//      meUrl='/auth/me' --> api_get_me_by_token
+//   >
 //     <App />
 //   </AuthProvider>
 // </DataProvider>
