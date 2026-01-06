@@ -183,16 +183,23 @@ program
   .description("CLI to copy component/templates into project")
   .version("1.0.0");
 
-program.command("add").description("Select components to add").action(addComponents);
+// program.command("add").description("Select components to add").action(addComponents);
 program
   .command("add [components...]")
-  .description("Add components by name or select interactively")
-  .action(async (components) => {
+  .description("Add components")
+  .option("--all", "Add all components")
+  .action(async (components = [], options) => {
+    if (options.all) {
+      await addComponents(); //handle --all
+      return;
+    }
+
     if (components.length > 0) {
       await addComponentsByName(components);
-    } else {
-      await addComponents();
+      return;
     }
+
+    await addComponents(); // interactive
   });
 
 
