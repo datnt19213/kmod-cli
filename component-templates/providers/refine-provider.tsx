@@ -91,7 +91,7 @@ export interface DeleteManyParams {
   meta?: AxiosRequestConfig;
 }
 
-export interface CustomParams {
+export interface CustomParams extends AxiosRequestConfig {
   url?: string;
   method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
   payload?: any;
@@ -221,8 +221,7 @@ class DataProvider {
     options: DataProviderOptions = {}
   ) {
     this.httpClient = httpClient;
-    
-    // Lấy baseURL từ httpClient
+
     const baseURL = httpClient.defaults.baseURL || '';
     this.apiUrl = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
     
@@ -804,7 +803,8 @@ export function useOne<T = any>(
 
 export function useCreate<T = any, V = any>(
   resource: string,
-  options: UseMutationOptions<T>
+  options: UseMutationOptions<T>,
+  meta?:AxiosRequestConfig
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -819,7 +819,8 @@ export function useCreate<T = any, V = any>(
     
     try {
       const result = await dataProvider.create<T, V>(resource, { 
-        variables
+        variables,
+        meta,
        });
       if (onSuccess) {
         onSuccess(result.data);
@@ -842,7 +843,8 @@ export function useCreate<T = any, V = any>(
 
 export function useUpdate<T = any, V = any>(
   resource: string,
-  options: UseMutationOptions<T>
+  options: UseMutationOptions<T>,
+  meta?: AxiosRequestConfig
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -857,7 +859,7 @@ export function useUpdate<T = any, V = any>(
       setError(null);
       
       try {
-        const result = await dataProvider.update<T, V>(resource, { id, variables });
+        const result = await dataProvider.update<T, V>(resource, { id, variables, meta });
         if (onSuccess) {
           onSuccess(result.data);
         }
@@ -881,7 +883,8 @@ export function useUpdate<T = any, V = any>(
 
 export function useDelete<T = any>(
   resource: string,
-  options: UseMutationOptions<T>
+  options: UseMutationOptions<T>,
+  meta?: AxiosRequestConfig
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -896,7 +899,7 @@ export function useDelete<T = any>(
       setError(null);
       
       try {
-        const result = await dataProvider.deleteOne<T>(resource, { id });
+        const result = await dataProvider.deleteOne<T>(resource, { id, meta });
         if (onSuccess) {
           onSuccess(result.data);
         }
@@ -920,7 +923,7 @@ export function useDelete<T = any>(
 
 export function useCustom<T = any>(
   resource: string,
-  options: UseMutationOptions<T> & CustomParams
+  options: UseMutationOptions<T> & CustomParams,
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
@@ -942,6 +945,7 @@ export function useCustom<T = any>(
           method: options.method,
           headers: options.headers,
           query: options.query,
+          ...options
         });
         if (onSuccess) {
           onSuccess(result.data);
