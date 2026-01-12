@@ -994,33 +994,70 @@ export const useDataProvider = () => {
 
 /**
  * Create HTTP client with authentication
+ * @param url Base URL for the HTTP client
+ * @param options Configuration options for the HTTP client
+ * @param options.tokenName Name of the token to use for authentication
+ * @param options.tokenStorage Storage mechanism for the token
+ * @param options.authorizationType Type of authorization (e.g., Bearer, Basic)
+ * @param options.withCredentials Whether to send cookies with requests (defaults to true if tokenStorage is "http-only")
+ * @returns Configured Axios instance
  */
-export function createHttpClient(
-  baseURL: string, 
-  authTokenKey: string = 'token',
-  authTokenStorage: 'localStorage' | 'sessionStorage' | 'cookie' = 'cookie',
-  typeAuthorization: "Bearer" | "Basic" | string = "Bearer"
-): AxiosInstance {
+
+export interface ICreateHttpClientOptions {
+  tokenName?: string ;
+  tokenStorage?: "local" | "session" | "cookie" | "http-only";
+  authorizationType?: "Bearer" | "Basic" | string;
+  withCredentials?: boolean;
+}
+
+export  interface ICreateHttpClient {
+  url?: string;
+  options?: ICreateHttpClientOptions
+}
+export function createHttpClient({url, options = {}}:ICreateHttpClient): AxiosInstance {
+  const {
+    tokenName = "token",
+    tokenStorage = "http-only",
+    authorizationType = "Bearer",
+  } = options;
+  
+  const withCredentials =
+    options.withCredentials ?? tokenStorage === "http-only";
+
+  
   const axiosInstance = axios.create({
-    baseURL: baseURL || 'https://api.example.com',
+    baseURL: url || "https://api.example.com",
+    withCredentials,
   });
 
-  axiosInstance.interceptors.request.use(config => {
+  axiosInstance.interceptors.request.use((config) => {
     let token: string | null = null;
-    
-    if (authTokenStorage === 'localStorage') {
-      token = localStorage.getItem(authTokenKey);
-    } else if (authTokenStorage === 'sessionStorage') {
-      token = sessionStorage.getItem(authTokenKey);
-    } else if (authTokenStorage === 'cookie') {
-      const match = document.cookie.match(new RegExp('(^| )' + authTokenKey + '=([^;]+)'));
-      if (match) token = match[2];
+
+    switch (options.tokenStorage) {
+      case "local":
+        token = localStorage.getItem(tokenName);
+        break;
+
+      case "session":
+        token = sessionStorage.getItem(tokenName);
+        break;
+
+      case "cookie":
+        token = cookiesProvider.get(tokenName) ?? null;
+        break;
+
+      case "http-only":
+        // NO READ 
+        // HttpOnly cookies are not accessible via JavaScript 
+        // Browser will send it automatically
+        break;
     }
-    
+
+    // Just set token if available in storage
     if (token) {
-      config.headers.Authorization = `${typeAuthorization} ${token}`;
-    }
-    
+      config.headers.Authorization = `${authorizationType} ${token}`;
+    } 
+
     return config;
   });
 
@@ -1050,15 +1087,36 @@ interface AuthContextValue {
   isAuthenticated: () => boolean;
   setUser: (user: AuthUser | null) => void;
   login: (payload: LoginPayload, type?: "full" | "simple") => Promise<any>;
-  logout: () => void;
+  logout: (params: CustomParams, type?: TypeResponse) => Promise<any>;
   getMe: (type?: "full" | "simple") => Promise<any>;
 }
 
+/**
+ * Authentication Provider Urls Props
+ * @param loginUrl - URL for login API
+ * @param logoutUrl - URL for logout API
+ * @param meUrl - URL for fetching current user info
+ * @returns AuthProviderUrls
+ */
+export interface AuthProviderUrls {
+  loginUrl: string;
+  logoutUrl?: string;
+  meUrl?: string;
+}
+
+/**
+ * Authentication Provider Props
+ * @param children - React children nodes
+ * @param urls - AuthProviderUrls
+ * @param tokenKey - Key for token storage
+ * @param keysCleanUpOnLogout - Additional keys to clean up on logout
+ * @returns AuthProviderProps
+ */
 export interface AuthProviderProps {
   children: React.ReactNode;
-  loginUrl: string;
-  meUrl: string;
+  urls: AuthProviderUrls;
   tokenKey: string;
+  keysCleanUpOnLogout?: string[] | string;
 }
 
 export type TypeResponse = "full" | "simple";
@@ -1075,12 +1133,20 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({
   children,
-  loginUrl = '/auth/login',
-  meUrl = '/auth/me',
+  urls,
   tokenKey = 'token',
+  keysCleanUpOnLogout = ["token"],
 }) => {
   const dataProvider = useDataProvider();
   const [user, setUser] = useState<AuthUser | null>(null);
+
+  const { loginUrl, meUrl, logoutUrl } = urls;
+
+  function removeKeys(key: string) {
+    cookiesProvider.remove(key);
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  }
 
   const login = useCallback(async (payload: LoginPayload, type: TypeResponse = "full") => {
       try {
@@ -1100,15 +1166,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
   , [dataProvider, loginUrl]);
 
-  const logout = useCallback(() => {
-    cookiesProvider.remove(tokenKey);
-    localStorage.clear();
-    sessionStorage.clear();
-    dataProvider.clearAllCache();
-  }, [dataProvider]);
+  const logout = useCallback(async (params: CustomParams, type: TypeResponse = "full") => {
+
+    try {
+      const res = await dataProvider.custom<any>({
+        url: params.url || logoutUrl,
+        ...params,
+      });
+
+      if (type === "simple") {
+        return res.data;
+      }
+      
+      return res;
+    } catch (error) {
+      throw error;
+    } finally {
+      setUser(null);
+      dataProvider.clearAllCache();
+      if(Array.isArray(keysCleanUpOnLogout)){
+        keysCleanUpOnLogout.forEach((key) => {
+          removeKeys(key);
+        });
+      } else {
+        removeKeys(keysCleanUpOnLogout);
+      }
+    }
+    
+  }, [dataProvider, logoutUrl]);
 
   const isAuthenticated = () => {
-    return (cookiesProvider.get(tokenKey) !== null && cookiesProvider.get(tokenKey) !== undefined && cookiesProvider.get(tokenKey) !== "" && typeof cookiesProvider.get(tokenKey) === "string" && user !== null) ? true : false;
+    return user !== null;
   };
   const getToken = useCallback(() => {
     return cookiesProvider.get(tokenKey);
@@ -1128,12 +1216,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     } catch {
       return null;
     }
-  }, [dataProvider, meUrl, logout]);
+  }, [dataProvider, meUrl]);
+
+  useEffect(() => {
+    getMe().then((u: any) => u && setUser(u));
+  }, [getMe]);
+
 
   const value: AuthContextValue = {
     user,
     setUser,
-    token: getToken(),
+    token: getToken() ?? null,
     isAuthenticated: isAuthenticated,
     login,
     logout,
@@ -1171,28 +1264,39 @@ export const cookiesProvider = {
 
 // =================== Example ===================
 
-// create httpClient
+// create httpClient - (can create multiple httpClients for different apis)
 
 // const TOKEN = "token";
 
-// const httpClient = createHttpClient(
-//   `${process.env.NEXT_PUBLIC_API_URL}`,
-//   TOKEN, --> key_name_cookie
-//   "cookie", --> storage
-//   "Bearer" --> prefix
-// );
+  // const httpClient = createHttpClient({
+  //   url: `${process.env.NEXT_PUBLIC_API_URL}`,
+  //   options: {
+  //     authorizationType: "Bearer",
+  //     tokenName: TOKEN,
+  //     tokenStorage: "cookie",
+  //     withCredentials: true, --- optionals (default to true if tokenStorage is "http-only")
+  //   },
+  // });
 
 
 // create dataProvider
 
 // const dataProvider = useDataProvider(httpClient);
 
+// const urls = {
+//     loginUrl: "/auth/login", --> api_login
+//     logoutUrl: "/auth/logout", --> api_logout
+//     meUrl: "/auth/me", --> api_get_me_by_token
+//   }
+
+//   const keysRemoveOnLogout = [TOKEN, "refreshToken", "user"];
+
 // wrapped all into:
 // <DataProvider  dataProvider={dataProvider}>
 //   <AuthProvider 
-//      loginUrl={"/auth/login"} --> api_login 
+//      urls={urls} --> api_login 
 //      tokenKey={TOKEN} 
-//      meUrl='/auth/me' --> api_get_me_by_token
+//      keysCleanUpOnLogout={keysRemoveOnLogout} --> optional (default to ["token"]) - additional keys to clean up on logout
 //   >
 //     <App />
 //   </AuthProvider>
