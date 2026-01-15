@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react';
 
-// Nếu bạn cần alias cho ITable type, dùng:
 import type { Table as ITable } from '@tanstack/react-table';
 import {
   Cell,
@@ -55,7 +54,7 @@ export type TableClassNames = {
 };
 export type TableHeaderProps<TData> =
   HTMLAttributes<HTMLTableSectionElement> & {
-    handleClick: ({
+    handleClick?: ({
       e,
       table,
     }: {
@@ -64,7 +63,7 @@ export type TableHeaderProps<TData> =
     }) => void;
   };
 export type TableBodyProps<TData> = HTMLAttributes<HTMLTableSectionElement> & {
-  handleClick: ({
+  handleClick?: ({
     e,
     table,
   }: {
@@ -73,7 +72,8 @@ export type TableBodyProps<TData> = HTMLAttributes<HTMLTableSectionElement> & {
   }) => void;
 };
 export type TableHeadProps<TData> = HTMLAttributes<HTMLTableCellElement> & {
-  handleClick: ({
+  classNameCondition?: | (({cell, table}: {cell?: Header<TData, unknown>; table?: ITable<TData>}) => string) | string;
+  handleClick?: ({
     e,
     table,
     cell,
@@ -85,7 +85,8 @@ export type TableHeadProps<TData> = HTMLAttributes<HTMLTableCellElement> & {
 };
 export type TableCellProps<TData, TValue> =
   HTMLAttributes<HTMLTableCellElement> & {
-    handleClick: ({
+    classNameCondition?: | (({cell, table}: {cell?: Cell<TData, unknown>; table?: ITable<TData>}) => string) | string;
+    handleClick?: ({
       e,
       table,
       cell,
@@ -96,7 +97,7 @@ export type TableCellProps<TData, TValue> =
     }) => void;
   };
 export type TableRowHeadProps<TData> = HTMLAttributes<HTMLTableRowElement> & {
-  handleClick: ({
+  handleClick?: ({
     e,
     table,
     row,
@@ -107,7 +108,8 @@ export type TableRowHeadProps<TData> = HTMLAttributes<HTMLTableRowElement> & {
   }) => void;
 };
 export type TableRowBodyProps<TData> = HTMLAttributes<HTMLTableRowElement> & {
-  handleClick: ({
+  classNameCondition?: | (({row, table}: {row?: Row<TData>; table?: ITable<TData>}) => string) | string;
+  handleClick?: ({
     e,
     table,
     row,
@@ -118,7 +120,7 @@ export type TableRowBodyProps<TData> = HTMLAttributes<HTMLTableRowElement> & {
   }) => void;
 };
 export type TableProps<TData> = HTMLAttributes<HTMLTableElement> & {
-  handleClick: ({
+  handleClick?: ({
     e,
     table,
   }: {
@@ -173,6 +175,15 @@ export type DataTableProps<TData, TValue> = {
   // handles?: Handles
 };
 
+export interface UseTablePropsFn<TData, TValue> {
+  table: ITable<TData>;
+  row?: Row<TData>;
+  cell?: Cell<TData, TValue>;
+  header?: Header<TData, TValue>;
+  headerGroup?: HeaderGroup<TData>;
+}
+
+
 export type DataTableToolbarFns<TData> = {
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
@@ -204,7 +215,7 @@ export function DataTable<TData, TValue>({
   useTableProps,
   initialState,
   alternate = "even",
-  alternateColor = "#f5f5f5",
+  alternateColor = "#fbfbfb",
   // handles
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
@@ -241,47 +252,74 @@ export function DataTable<TData, TValue>({
   };
 
   const {
-  handleClick: tableHandleClick,
-  onClick: tableOnClick,
-  ...tableDomProps
-} = useTableProps?.tableProps || {};
+    handleClick: tableHandleClick,
+    onClick: tableOnClick,
+    ...tableDomProps
+  } = useTableProps?.tableProps || {};
 
-const {
-  handleClick: headerHandleClick,
-  onClick: headerOnClick,
-  ...headerDomProps
-} = useTableProps?.headerProps || {};
-const {
-  handleClick: rowHeadHandleClick,
-  onClick: rowHeadOnClick,
-  ...rowHeadDomProps
-} = useTableProps?.rowHeadProps || {};
-const {
-  handleClick: bodyHandleClick,
-  onClick: bodyOnClick,
-  ...bodyDomProps
-} = useTableProps?.bodyProps || {};
-const {
-  handleClick: rowBodyHandleClick,
-  onClick: rowBodyOnClick,
-  style: rowBodyStyle,
-  ...rowBodyDomProps
-} = useTableProps?.rowBodyProps || {};
-const {
-  handleClick: cellBodyHandleClick,
-  onClick: cellBodyOnClick,
-  ...cellBodyDomProps
-} = useTableProps?.cellBodyProps || {};
+  const {
+    handleClick: headerHandleClick,
+    onClick: headerOnClick,
+    ...headerDomProps
+  } = useTableProps?.headerProps || {};
+  const {
+    handleClick: rowHeadHandleClick,
+    onClick: rowHeadOnClick,
+    ...rowHeadDomProps
+  } = useTableProps?.rowHeadProps || {};
+  const {
+    handleClick: cellHeadHandleClick,
+    onClick: cellHeadOnClick,
+    classNameCondition: cellHeadClassNameCondition,
+    ...cellHeadDomProps
+  } = useTableProps?.cellHeadProps || {};
+  const {
+    handleClick: bodyHandleClick,
+    onClick: bodyOnClick,
+    ...bodyDomProps
+  } = useTableProps?.bodyProps || {};
+  const {
+    handleClick: rowBodyHandleClick,
+    onClick: rowBodyOnClick,
+    style: rowBodyStyle,
+    classNameCondition: rowBodyClassNameCondition,
+    ...rowBodyDomProps
+  } = useTableProps?.rowBodyProps || {};
+  const {
+    handleClick: cellBodyHandleClick,
+    onClick: cellBodyOnClick,
+    classNameCondition: cellBodyClassNameCondition,
+    ...cellBodyDomProps
+  } = useTableProps?.cellBodyProps || {};
 
-const {
-  handleClick: skRowHandleClick,
-  ...skRowDomProps
-} = useTableProps?.rowBodyProps || {};
+  const { handleClick: skRowHandleClick, classNameCondition: skRowClassNameCondition, ...skRowDomProps } =
+    useTableProps?.rowBodyProps || {};
 
-const {
-  handleClick: skCellHandleClick,
-  ...skCellDomProps
-} = useTableProps?.cellBodyProps || {};
+  const { handleClick: skCellHandleClick, classNameCondition: skCellClassNameCondition, ...skCellDomProps } =
+    useTableProps?.cellBodyProps || {};
+
+
+  function getCellHeadClassNameByCondition({cell,table}: {cell?: Header<TData, unknown>; table?: ITable<TData>}) {
+    if(!cell || !table) return "";
+    const classNameCondition = useTableProps?.cellHeadProps?.classNameCondition;
+    if(!classNameCondition) return "";
+    if(typeof classNameCondition === "string") return classNameCondition;
+    return classNameCondition({cell,table});
+  }
+  function getCellBodyClassNameByCondition({cell,table}: {cell?: Cell<TData, unknown>; table?: ITable<TData>}) {
+    if(!cell || !table) return "";
+    const classNameCondition = useTableProps?.cellBodyProps?.classNameCondition;
+    if(!classNameCondition) return "";
+    if(typeof classNameCondition === "string") return classNameCondition;
+    return classNameCondition({cell,table});
+  }
+  function getRowBodyClassNameByCondition({row,table}: {row?: Row<TData>; table?: ITable<TData>}) {
+    if(!row || !table) return "";
+    const classNameCondition = useTableProps?.rowBodyProps?.classNameCondition;
+    if(!classNameCondition) return "";
+    if(typeof classNameCondition === "string") return classNameCondition;
+    return classNameCondition({row,table});
+  }
 
 
   return (
@@ -321,11 +359,7 @@ const {
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    {...(() => {
-                      const { handleClick, onClick, ...rest } =
-                        useTableProps?.cellHeadProps || {};
-                      return rest;
-                    })()}
+                    {...cellHeadDomProps}
                     className={cn(
                       "cursor-pointer select-none",
                       classNames?.header?.head
@@ -334,22 +368,11 @@ const {
                       width: header.getSize() ? `${header.getSize()}px !important` : "auto",
                     }}
                     onClick={(e) => {
-                      // Just call the parent's onClick if provided
-                      if (useTableProps?.cellHeadProps?.onClick) {
-                        useTableProps.cellHeadProps.onClick(e);
-                      }
-
-                      // Just call the parent's handleClick if provided
-                      if (useTableProps?.cellHeadProps?.handleClick) {
-                        useTableProps.cellHeadProps.handleClick({
-                          e,
-                          cell: header,
-                          table,
-                        });
-                      }
+                      cellHeadOnClick?.(e);
+                      cellHeadHandleClick?.({ e, table, cell: header });
                     }}
                   >
-                    <div className={cn("flex items-center gap-1 w-fit", classNames?.header?.content)}>
+                    <div className={cn("flex items-center gap-1 w-fit", classNames?.header?.content, getCellHeadClassNameByCondition({cell: header, table}))}>
                       {flexRender(
                         header.column.columnDef.header,
                         header.getContext()
@@ -384,15 +407,13 @@ const {
             {!isLoading &&
               table.getRowModel().rows.length > 0 &&
               table.getRowModel().rows.map((row, index) => {
-                const { handleClick, onClick, ...rest } =
-                  useTableProps?.rowBodyProps || {};
 
                 return (
                   <TableRow
                     {...rowBodyDomProps}
                     key={row.id}
                     style={{...rowBodyStyle, backgroundColor: getAlternateColor(index)}}
-                    className={cn(classNames?.body?.row)}
+                    className={cn(classNames?.body?.row, getRowBodyClassNameByCondition({row,table}))}
                     data-state={row.getIsSelected() && "selected"}
                     onClick={(e) => {
                       rowBodyOnClick?.(e);
@@ -403,7 +424,7 @@ const {
                       <TableCell
                         {...cellBodyDomProps}
                         key={cell.id}
-                        className={cn(classNames?.body?.cell)}
+                        className={cn(classNames?.body?.cell, getCellBodyClassNameByCondition({cell, table}))}
                         onClick={(e) => {
                           cellBodyOnClick?.(e);
                           cellBodyHandleClick?.({ e, cell, table });
@@ -480,26 +501,27 @@ export const TableSkeleton = <TData, TValue>({
   const {
   handleClick: _rowHandleClick,
   onClick: _rowOnClick,
+  classNameCondition: rowClassNameCondition,
   ...rowDomProps
 } = props?.rowBodyProps || {};
 
 const {
   handleClick: _cellHandleClick,
   onClick: _cellOnClick,
+  classNameCondition: cellClassNameCondition,
   ...cellDomProps
 } = props?.cellBodyProps || {};
-
 
   if (showNoData) {
     return (
       <TableRow
         key="no-data-skeleton"
-        className={cn(classNames?.body?.row)}
+        className={cn(classNames?.body?.row, )}
         {...rowDomProps}
       >
         <TableCell
           colSpan={columns.length}
-          className={cn("h-24 text-center", classNames?.body?.cell)}
+          className={cn("h-24 text-center")}
           {...cellDomProps}
         >
           {emptyLabel}
