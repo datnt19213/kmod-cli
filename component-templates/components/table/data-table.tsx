@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+// Nếu bạn cần alias cho ITable type, dùng:
 import type { Table as ITable } from '@tanstack/react-table';
 import {
   Cell,
@@ -90,9 +91,11 @@ export type TableCellProps<TData, TValue> =
       e,
       table,
       cell,
+      row
     }: {
       e: React.MouseEvent<HTMLTableCellElement>;
       cell: Cell<TData, TValue>;
+      row: Row<TData>;
       table: ITable<TData>;
     }) => void;
   };
@@ -365,14 +368,22 @@ export function DataTable<TData, TValue>({
                       classNames?.header?.head
                     )}
                     style={{
-                      width: header.getSize() ? `${header.getSize()}px !important` : "auto",
+                      width: header.getSize()
+                        ? `${header.getSize()}px !important`
+                        : "auto",
                     }}
                     onClick={(e) => {
                       cellHeadOnClick?.(e);
                       cellHeadHandleClick?.({ e, table, cell: header });
                     }}
                   >
-                    <div className={cn("flex items-center gap-1 w-fit", classNames?.header?.content, getCellHeadClassNameByCondition({cell: header, table}))}>
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 w-fit",
+                        classNames?.header?.content,
+                        getCellHeadClassNameByCondition({ cell: header, table })
+                      )}
+                    >
                       {flexRender(
                         header.column.columnDef.header,
                         header.getContext()
@@ -407,13 +418,18 @@ export function DataTable<TData, TValue>({
             {!isLoading &&
               table.getRowModel().rows.length > 0 &&
               table.getRowModel().rows.map((row, index) => {
-
                 return (
                   <TableRow
                     {...rowBodyDomProps}
                     key={row.id}
-                    style={{...rowBodyStyle, backgroundColor: getAlternateColor(index)}}
-                    className={cn(classNames?.body?.row, getRowBodyClassNameByCondition({row,table}))}
+                    style={{
+                      ...rowBodyStyle,
+                      backgroundColor: getAlternateColor(index),
+                    }}
+                    className={cn(
+                      classNames?.body?.row,
+                      getRowBodyClassNameByCondition({ row, table })
+                    )}
                     data-state={row.getIsSelected() && "selected"}
                     onClick={(e) => {
                       rowBodyOnClick?.(e);
@@ -424,10 +440,13 @@ export function DataTable<TData, TValue>({
                       <TableCell
                         {...cellBodyDomProps}
                         key={cell.id}
-                        className={cn(classNames?.body?.cell, getCellBodyClassNameByCondition({cell, table}))}
+                        className={cn(
+                          classNames?.body?.cell,
+                          getCellBodyClassNameByCondition({ cell, table })
+                        )}
                         onClick={(e) => {
                           cellBodyOnClick?.(e);
-                          cellBodyHandleClick?.({ e, cell, table });
+                          cellBodyHandleClick?.({ e, cell, row, table });
                         }}
                       >
                         {flexRender(
