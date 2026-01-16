@@ -13,10 +13,13 @@ const componentsConfig = JSON.parse(
   fs.readFileSync(componentsPath, 'utf8')
 );
 
+// sort a-z
+const componentSorted = Object.keys(componentsConfig).sort(
+  (a, b) => a.localeCompare(b)
+)
+
 // build list
-const componentList = Object.keys(componentsConfig)
-  .map((k) => `- ${k}`)
-  .join('\n');
+const componentList = componentSorted.map((k) => `- ${k}`).join('\n');
 
 // đọc README
 const readmeContent = fs.readFileSync(readmePath, 'utf8');

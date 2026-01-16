@@ -147,6 +147,11 @@
     "dependencies": [],
     "devDependencies": []
   },
+  "list-map": {
+    "path": "component-templates/components/list-map.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
   "loader-slash-gradient": {
     "path": "component-templates/components/loader-slash-gradient.tsx",
     "dependencies": [],
@@ -328,6 +333,11 @@
     "dependencies": [],
     "devDependencies": []
   },
+  "rbac": {
+    "path": "component-templates/providers/rbac.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
   "refine-provider": {
     "path": "component-templates/providers/refine-provider.tsx",
     "dependencies": [
@@ -358,9 +368,7 @@
     "dependencies": [
       "js-cookie"
     ],
-    "devDependencies": [
-      "@types/js-cookie"
-    ]
+    "devDependencies": []
   },
   "hash-aes": {
     "path": "component-templates/utils/hash/hash-aes.ts",
