@@ -3,7 +3,7 @@ name: Sync README with package.json version
 on:
   push:
     branches:
-      - main
+      - master
 
 permissions:
   contents: write

@@ -105,11 +105,11 @@ npx kumod add button # add button component
 ### Latest Updates
 
 ![npm](https://img.shields.io/npm/v/kmod-cli)
-![Commits since release](https://img.shields.io/github/commits-since/datnt19213/kmod-cli/v__VERSION__)
+![Commits since release](https://img.shields.io/github/commits-since/datnt19213/kmod-cli/v1.7.3)
 ![Last commit](https://img.shields.io/github/last-commit/datnt19213/kmod-cli?label=last%20update)
 
 <br/>
-https://github.com/datnt19213/kmod-cli/compare/v__VERSION__...master
+https://github.com/datnt19213/kmod-cli/compare/v1.7.3...master
 
 ## Contributing
 
