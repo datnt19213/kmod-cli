@@ -100,6 +100,7 @@ export type ValidationRules<T> = Partial<{
 type ValidationErrors<T> = {
   [K in keyof T]?: string;
 };
+type Touched<T> = Partial<Record<keyof T, boolean>>;
 
 export const useFormValidator = <T extends Record<string, any>>(
   initialValues: T,
@@ -107,100 +108,125 @@ export const useFormValidator = <T extends Record<string, any>>(
 ) => {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<ValidationErrors<T>>({});
+  const [touched, setTouched] = useState<Touched<T>>({});
+
 
 const validateField = <K extends keyof T>(
-  field: K,
-  value: T[K]
-): string | undefined => {
-  const rules = validationRules[field];
-  if (!rules) return undefined;
+    field: K,
+    value: T[K],
+    isTouched = false,
+    isSubmit = false
+  ): string | undefined => {
+    const rules = validationRules[field];
+    if (!rules) return;
 
-  if (rules.required) {
-    if (
-      value === '' ||
-      value === null ||
-      value === undefined
-    ) {
-      return rules.errorMessage || 'This field is required.';
+    // Not touched & not submit → no validate
+    if (!isTouched && !isSubmit) return;
+
+    // Not submit & value equals initial → no error
+    if (!isSubmit && value === initialValues[field]) return;
+
+    // REQUIRED
+    if (rules.required) {
+      if (
+        value === '' ||
+        value === null ||
+        value === undefined
+      ) {
+        return rules.errorMessage || 'This field is required.';
+      }
     }
-  }
 
-  if (rules.pattern && typeof value === 'string') {
-    if (!rules.pattern.test(value)) {
-      return rules.errorMessage || 'Invalid format.';
+    // PATTERN
+    if (rules.pattern && typeof value === 'string' && value !== '') {
+      if (!rules.pattern.test(value)) {
+        return rules.errorMessage || 'Invalid format.';
+      }
     }
-  }
 
-  if (rules.minLength && typeof value === 'string') {
-    if (value.length < rules.minLength) {
-      return rules.errorMessage || `Minimum length is ${rules.minLength}.`;
+    // MIN LENGTH
+    if (rules.minLength && typeof value === 'string' && value !== '') {
+      if (value.length < rules.minLength) {
+        return rules.errorMessage || `Minimum length is ${rules.minLength}.`;
+      }
     }
-  }
 
-  if (rules.maxLength && typeof value === 'string') {
-    if (value.length > rules.maxLength) {
-      return rules.errorMessage || `Maximum length is ${rules.maxLength}.`;
+    // MAX LENGTH
+    if (rules.maxLength && typeof value === 'string' && value !== '') {
+      if (value.length > rules.maxLength) {
+        return rules.errorMessage || `Maximum length is ${rules.maxLength}.`;
+      }
     }
-  }
 
-  if (rules.custom && !rules.custom(value)) {
-    return rules.errorMessage || 'Invalid value.';
-  }
+    // CUSTOM
+    if (rules.custom && !rules.custom(value)) {
+      return rules.errorMessage || 'Invalid value.';
+    }
 
-  return undefined;
-};
+    return;
+  };
 
 
   const validateAllFields = (): boolean => {
-    const newErrors: ValidationErrors<T> = {};
     let isValid = true;
+    const newErrors: ValidationErrors<T> = {};
 
-    for (const field in validationRules) {
-      const value = values[field];
-      const error = validateField(field, value);
+    (Object.keys(validationRules) as (keyof T)[]).forEach((field) => {
+      const error = validateField(field, values[field], true, true);
       if (error) {
         isValid = false;
         newErrors[field] = error;
       }
-    }
+    });
 
     setErrors(newErrors);
     return isValid;
   };
 
+
   // validate array of fields
 const validateFields = (fields: readonly (keyof T)[]): boolean => {
-  const newErrors: ValidationErrors<T> = {};
-  let isValid = true;
+    let isValid = true;
+    const newErrors: ValidationErrors<T> = {};
 
-  for (const field of fields) {
-    const value = values[field];
-    const error = validateField(field, value);
-    if (error) {
-      isValid = false;
-      newErrors[field] = error;
-    }
-  }
+    fields.forEach((field) => {
+      const error = validateField(field, values[field], true, true);
+      if (error) {
+        isValid = false;
+        newErrors[field] = error;
+      }
+    });
 
-  setErrors(prev => ({ ...prev, ...newErrors }));
-  return isValid;
-};
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+    return isValid;
+  };
 
 
-const handleChange = <K extends keyof T>(field: K, value: T[K]) => {
-  setValues(prev => ({ ...prev, [field]: value }));
-  const error = validateField(field, value);
-  setErrors(prev => ({ ...prev, [field]: error }));
-};
+
+  const handleChange = <K extends keyof T>(field: K, value: T[K]) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+    const error = validateField(field, value, true, false);
+    setErrors((prev) => ({ ...prev, [field]: error }));
+  };
+
+  const resetForm = (nextValues: T = initialValues) => {
+    setValues(nextValues);
+    setErrors({});
+    setTouched({});
+  };
 
 
   return {
     values,
     errors,
+    touched,
     handleChange,
+    validateFields,
     validateAllFields,
     setValues,
-    validateFields
+    resetForm,
   };
 };
 
