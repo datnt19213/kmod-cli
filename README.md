@@ -26,7 +26,7 @@ npx kmod add [command]
 ### Common Commands
 
 - `--all` — Get all coomponent
-- `<component_name> - Get a component
+- `<component_name>` - Get a component
 
 ### Examples
 
