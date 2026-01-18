@@ -83,18 +83,19 @@ export const REGEXS = {
   uuid: /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/,
 }
 
-interface ValidationRule {
+export interface ValidationRule<V = unknown> {
   required?: boolean;
   pattern?: RegExp;
-  custom?: (value: string) => boolean;
   minLength?: number;
   maxLength?: number;
   errorMessage?: string;
+  custom?: (value: V) => boolean;
 }
 
 export type ValidationRules<T> = Partial<{
-  [K in keyof T]: ValidationRule;
+  [K in keyof T]: ValidationRule<T[K]>;
 }>;
+
 
 type ValidationErrors<T> = {
   [K in keyof T]?: string;
@@ -107,32 +108,48 @@ export const useFormValidator = <T extends Record<string, any>>(
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<ValidationErrors<T>>({});
 
-  const validateField = (field: keyof T, value: T[keyof T]): string | undefined => {
-    const rules = validationRules[field];
-    if (!rules) return undefined;
+const validateField = <K extends keyof T>(
+  field: K,
+  value: T[K]
+): string | undefined => {
+  const rules = validationRules[field];
+  if (!rules) return undefined;
 
-    if (rules.required && !value) {
-      return rules.errorMessage || "This field is required.";
+  if (rules.required) {
+    if (
+      value === '' ||
+      value === null ||
+      value === undefined
+    ) {
+      return rules.errorMessage || 'This field is required.';
     }
+  }
 
-    if (rules.pattern && !rules.pattern.test(value)) {
-      return rules.errorMessage || "Invalid format.";
+  if (rules.pattern && typeof value === 'string') {
+    if (!rules.pattern.test(value)) {
+      return rules.errorMessage || 'Invalid format.';
     }
+  }
 
-    if (rules.minLength && value.length < rules.minLength) {
+  if (rules.minLength && typeof value === 'string') {
+    if (value.length < rules.minLength) {
       return rules.errorMessage || `Minimum length is ${rules.minLength}.`;
     }
+  }
 
-    if (rules.maxLength && value.length > rules.maxLength) {
+  if (rules.maxLength && typeof value === 'string') {
+    if (value.length > rules.maxLength) {
       return rules.errorMessage || `Maximum length is ${rules.maxLength}.`;
     }
+  }
 
-    if (rules.custom && !rules.custom(value)) {
-      return rules.errorMessage || "Invalid value.";
-    }
+  if (rules.custom && !rules.custom(value)) {
+    return rules.errorMessage || 'Invalid value.';
+  }
 
-    return undefined;
-  };
+  return undefined;
+};
+
 
   const validateAllFields = (): boolean => {
     const newErrors: ValidationErrors<T> = {};
@@ -152,28 +169,30 @@ export const useFormValidator = <T extends Record<string, any>>(
   };
 
   // validate array of fields
-  const validateFields = (fields: Array<keyof T>): boolean => {
-    const newErrors: ValidationErrors<T> = {};
-    let isValid = true;
+const validateFields = (fields: readonly (keyof T)[]): boolean => {
+  const newErrors: ValidationErrors<T> = {};
+  let isValid = true;
 
-    for (const field of fields) {
-      const value = values[field];
-      const error = validateField(field, value);
-      if (error) {
-        isValid = false;
-        newErrors[field] = error;
-      }
-    }
-
-    setErrors({...errors, ...newErrors});
-    return isValid;
-  };
-
-  const handleChange = <K extends keyof T>(field: K, value: T[K]) => {
-    setValues({...values, [field]: value});
+  for (const field of fields) {
+    const value = values[field];
     const error = validateField(field, value);
-    setErrors({...errors, [field]: error});
-  };
+    if (error) {
+      isValid = false;
+      newErrors[field] = error;
+    }
+  }
+
+  setErrors(prev => ({ ...prev, ...newErrors }));
+  return isValid;
+};
+
+
+const handleChange = <K extends keyof T>(field: K, value: T[K]) => {
+  setValues(prev => ({ ...prev, [field]: value }));
+  const error = validateField(field, value);
+  setErrors(prev => ({ ...prev, [field]: error }));
+};
+
 
   return {
     values,

@@ -101,6 +101,14 @@ npx kumod add button # add button component
 - timout-loader
 - toast
 - utils
+
+### Latest Updates
+
+![npm](https://img.shields.io/npm/v/kmod-cli)
+![Commits since release](https://img.shields.io/github/commits-since/datnt19213/kmod-cli/v__VERSION__)
+![Last commit](https://img.shields.io/github/last-commit/datnt19213/kmod-cli?label=last%20update)
+
+
 ## Contributing
 
 Contributions are welcome! Please open issues or pull requests.
