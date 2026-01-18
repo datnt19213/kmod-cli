@@ -67,7 +67,7 @@ export const REGEXS = {
    */
   text: /^[a-zA-ZÀ-ỹ0-9\s]+$/,
   /**
-   * /^[a-zA-Z0-9\s.,#\/-]+$/
+   * /^[a-zA-ZÀ-ỹ0-9\s.,#\/-]+$/
    * @example "123 Main St, Anytown, USA"
    */
   address: /^[a-zA-ZÀ-ỹ0-9\s.,#\/-]+$/,
@@ -92,9 +92,9 @@ interface ValidationRule {
   errorMessage?: string;
 }
 
-export type ValidationRules<T> = {
+export type ValidationRules<T> = Partial<{
   [K in keyof T]: ValidationRule;
-};
+}>;
 
 type ValidationErrors<T> = {
   [K in keyof T]?: string;
@@ -176,38 +176,11 @@ export const useFormValidator = <T extends Record<string, any>>(
   };
 
   return {
-    /**
-     * Form values
-     * - ex: values.email
-     */
     values,
-    /**
-     * Form errors
-     * - ex: errors.email
-     */
     errors,
-    /** 
-     * Update the form values
-     * - ex: handleChange('email', 'a@example.com')
-     */
     handleChange,
-    /**
-     * Validate all form fields
-     * - ex: validateAllFields()
-     * @returns boolean
-     */
     validateAllFields,
-    /**
-     * Update entire the form values
-     * @param newValues
-     * - ex: setValues({ email: 'a@example.com', password: '123456' })
-     */
     setValues,
-    /**
-     * Validate array of fields
-     * - ex: validateFields(['email', 'password'])
-     * @returns boolean
-     */
     validateFields
   };
 };
@@ -232,3 +205,4 @@ export const useFormValidator = <T extends Record<string, any>>(
 //     // proceed with form submission
 //   }
 // };
+
