@@ -19,7 +19,7 @@ yarn add kmod-cli
 ## Usage
 
 ```bash
-npx kmod add [command]
+npx kumod add [command]
 
 ```
 

@@ -231,16 +231,15 @@ const validateFields = (fields: readonly (keyof T)[]): boolean => {
 };
 
 
-
 // import { useFormValidator, REGEXS } from '@/utils/validate/simple-validate';
 
 // const validationRules = {
-//   email: { required: true, pattern: REGEXS.email, errorMessage: "Please enter a valid email." },
-//   password: { required: true, minLength: 6, errorMessage: "Password must be at least 6 characters." },
+//   username: { required: true, pattern: REGEXS.username, errorMessage: "Username must be 3-20 alphanumeric characters." },
+//   password: { required: true, pattern: REGEXS.password, errorMessage: "Password must contain letters, numbers, and be at least 8 characters." },
 // };
 
 // const { values, errors, handleChange, validateAllFields } = useFormValidator(
-//   { email: '', password: '' },
+//   { username: '', password: '' },
 //   validationRules
 // );
 
