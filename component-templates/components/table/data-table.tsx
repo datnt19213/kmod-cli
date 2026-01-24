@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react';
 
-// Nếu bạn cần alias cho ITable type, dùng:
 import type { Table as ITable } from '@tanstack/react-table';
 import {
   Cell,
@@ -53,83 +52,159 @@ export type TableClassNames = {
   header?: TableHeaderClassNames;
   body?: TableBodyClassNames;
 };
+
+// table
+export type HandleClickTableProps<TData> = {
+  e: React.MouseEvent<HTMLTableElement>;
+  table: ITable<TData>;
+}
+export type HandleClickTableFnc<TData> = ({
+  e,
+  table,
+}: HandleClickTableProps<TData>) => void;
+
+// header
+export type HandleClickTableHeaderProps<TData> = {
+  e: React.MouseEvent<HTMLTableSectionElement>;
+  table: ITable<TData>;
+}
+export type HandleClickTableHeaderFnc<TData> = ({
+  e,
+  table,
+}: HandleClickTableHeaderProps<TData>) => void;
+
+// row header
+export type HandleClickTableRowHeaderProps<TData> = {
+  e: React.MouseEvent<HTMLTableRowElement>;
+  row: HeaderGroup<TData>;
+  table: ITable<TData>;
+}
+export type HandleClickTableRowHeaderFnc<TData> = ({
+  e,
+  table,
+  row,
+}: HandleClickTableRowHeaderProps<TData>) => void;
+
+// body
+export type HandleClickTableBodyProps<TData> = {
+  e: React.MouseEvent<HTMLTableSectionElement>;
+  table: ITable<TData>;
+}
+export type HandleClickTableBodyFnc<TData> = ({
+  e,
+  table,
+}: HandleClickTableBodyProps<TData>) => void;
+
+// row body
+export type HandleClickTableRowBodyProps<TData> = {
+  e: React.MouseEvent<HTMLTableRowElement>;
+  row: Row<TData>;
+  table: ITable<TData>;
+}
+export type HandleClickTableRowBodyFnc<TData> = ({
+  e,
+  table,
+  row,
+}: HandleClickTableRowBodyProps<TData>) => void;
+
+// head cell
+export type HandleClickTableHeadProps<TData> = {
+  e: React.MouseEvent<HTMLTableCellElement>;
+  cell: Header<TData, unknown>;
+  table: ITable<TData>;
+}
+export type HandleClickTableHeadFnc<TData> = ({
+  e,
+  table,
+  cell,
+}: HandleClickTableHeadProps<TData>) => void;
+
+// body cell
+export type HandleClickTableCellProps<TData, TValue> = {
+  e: React.MouseEvent<HTMLTableCellElement>;
+  cell: Cell<TData, TValue>;
+  row: Row<TData>;
+  table: ITable<TData>;
+}
+export type HandleClickTableCellFnc<TData, TValue> = ({
+  e,
+  table,
+  cell,
+  row
+}: HandleClickTableCellProps<TData, TValue>) => void;
+
+// ============================================================== Table Props ==============================================================
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @example `handleClick: ({ e, table }) => {...}`
+ */
 export type TableHeaderProps<TData> =
   HTMLAttributes<HTMLTableSectionElement> & {
-    handleClick?: ({
-      e,
-      table,
-    }: {
-      e: React.MouseEvent<HTMLTableSectionElement>;
-      table: ITable<TData>;
-    }) => void;
+    handleClick?: HandleClickTableHeaderFnc<TData>;
   };
+
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @example `handleClick: ({ e, table }) => {...}`
+ */
 export type TableBodyProps<TData> = HTMLAttributes<HTMLTableSectionElement> & {
-  handleClick?: ({
-    e,
-    table,
-  }: {
-    e: React.MouseEvent<HTMLTableSectionElement>;
-    table: ITable<TData>;
-  }) => void;
+  handleClick?: HandleClickTableBodyFnc<TData>;
 };
+
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @prop cell - cell instance
+ * @example `handleClick: ({ e, table, cell }) => {...}`
+ */
 export type TableHeadProps<TData> = HTMLAttributes<HTMLTableCellElement> & {
   classNameCondition?: | (({cell, table}: {cell?: Header<TData, unknown>; table?: ITable<TData>}) => string) | string;
-  handleClick?: ({
-    e,
-    table,
-    cell,
-  }: {
-    e: React.MouseEvent<HTMLTableCellElement>;
-    cell: Header<TData, unknown>;
-    table: ITable<TData>;
-  }) => void;
+  handleClick?: HandleClickTableHeadFnc<TData>;
 };
+
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @prop cell - cell instance
+ * @prop row - row instance
+ * @example `handleClick: ({ e, table, cell, row }) => {...}`
+ */
 export type TableCellProps<TData, TValue> =
   HTMLAttributes<HTMLTableCellElement> & {
     classNameCondition?: | (({cell, table}: {cell?: Cell<TData, unknown>; table?: ITable<TData>}) => string) | string;
-    handleClick?: ({
-      e,
-      table,
-      cell,
-      row
-    }: {
-      e: React.MouseEvent<HTMLTableCellElement>;
-      cell: Cell<TData, TValue>;
-      row: Row<TData>;
-      table: ITable<TData>;
-    }) => void;
+    handleClick?: HandleClickTableCellFnc<TData, TValue>;
   };
+
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @prop row - row instance
+ * @example `handleClick: ({ e, table, row }) => {...}`
+ */
 export type TableRowHeadProps<TData> = HTMLAttributes<HTMLTableRowElement> & {
-  handleClick?: ({
-    e,
-    table,
-    row,
-  }: {
-    e: React.MouseEvent<HTMLTableRowElement>;
-    row: HeaderGroup<TData>;
-    table: ITable<TData>;
-  }) => void;
+  handleClick?: HandleClickTableRowHeaderFnc<TData>;
 };
+
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @prop row - row instance
+ * @example `handleClick: ({ e, table, row }) => {...}`
+ */
 export type TableRowBodyProps<TData> = HTMLAttributes<HTMLTableRowElement> & {
   classNameCondition?: | (({row, table}: {row?: Row<TData>; table?: ITable<TData>}) => string) | string;
-  handleClick?: ({
-    e,
-    table,
-    row,
-  }: {
-    e: React.MouseEvent<HTMLTableRowElement>;
-    row: Row<TData>;
-    table: ITable<TData>;
-  }) => void;
+  handleClick?: HandleClickTableRowBodyFnc<TData>;
 };
+
+/**
+ * @prop e - event click
+ * @prop table - table instance
+ * @example `handleClick: ({ e, table }) => {...}`
+ */
 export type TableProps<TData> = HTMLAttributes<HTMLTableElement> & {
-  handleClick?: ({
-    e,
-    table,
-  }: {
-    e: React.MouseEvent<HTMLTableElement>;
-    table: ITable<TData>;
-  }) => void;
+  handleClick?: HandleClickTableFnc<TData>;
 };
 
 export type UseTableProps<TData, TValue> = {
@@ -142,36 +217,44 @@ export type UseTableProps<TData, TValue> = {
   cellHeadProps?: TableHeadProps<TData>;
 };
 
+export type SurfixProps<TData, TValue> = {
+  header: Header<TData, TValue | unknown>;
+  showSortIconHeader: boolean;
+}
+export type ToolbarProps<TData> = {
+  table: ITable<TData>;
+  fns: DataTableToolbarFns<TData>;
+}
+export type PaginationProps<TData, TValue> = {
+  table: ITable<TData>;
+  fns: DataTablePaginationFns<TData>;
+}
+
+export type SurfixDataTableProps<TData, TValue> = ({
+    header,
+    showSortIconHeader,
+  }: SurfixProps<TData, TValue>) => ReactNode | ReactNode[];
+export type ToolbarDataTableProps<TData, TValue> = ({
+    table,
+    fns,
+  }: ToolbarProps<TData>) => ReactNode | ReactNode[];
+export type PaginationDataTableProps<TData, TValue> = ({
+    table,
+    fns,
+  }: PaginationProps<TData, TValue>) => ReactNode | ReactNode[];
+
 export type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  toolbarTable?: ({
-    table,
-    fns,
-  }: {
-    table: ITable<TData>;
-    fns: DataTableToolbarFns<TData>;
-  }) => ReactNode | ReactNode[];
-  paginationTable?: ({
-    table,
-    fns,
-  }: {
-    table: ITable<TData>;
-    fns: DataTablePaginationFns<TData>;
-  }) => ReactNode | ReactNode[];
+  toolbarTable?: ToolbarDataTableProps<TData, TValue>;
+  paginationTable?: PaginationDataTableProps<TData, TValue>;
   isLoading?: boolean;
   classNames?: TableClassNames;
   alternate?: "even" | "odd";
   alternateColor?: string;
   emptyLabel?: string;
   showSortIconHeader?: boolean;
-  surfix?: ({
-    header,
-    showSortIconHeader,
-  }: {
-    header: Header<TData, TValue | unknown>;
-    showSortIconHeader: boolean;
-  }) => ReactNode | ReactNode[];
+  surfix?: SurfixDataTableProps<TData, TValue>;
   enableSort?: boolean;
   useTableProps?: UseTableProps<TData, TValue>;
   initialState?: InitialTableState;
