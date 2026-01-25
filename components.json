@@ -193,6 +193,11 @@
     ],
     "devDependencies": []
   },
+  "scroll-spy": {
+    "path": "component-templates/components/scroll-spy.tsx",
+    "dependencies": [],
+    "devDependencies": []
+  },
   "segments-circle": {
     "path": "component-templates/components/segments-circle.tsx",
     "dependencies": [],

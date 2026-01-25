@@ -84,6 +84,7 @@ npx kumod add button # add button component
 - readme
 - refine-provider
 - safe-action
+- scroll-spy
 - segments-circle
 - select
 - simple-validate
@@ -101,7 +102,6 @@ npx kumod add button # add button component
 - timout-loader
 - toast
 - utils
-
 ## Contributing
 
 Contributions are welcome! Please open issues or pull requests.
