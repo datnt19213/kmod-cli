@@ -230,31 +230,27 @@ export type PaginationProps<TData, TValue> = {
   fns: DataTablePaginationFns<TData>;
 }
 
-export type SurfixDataTableProps<TData, TValue> = ({
-    header,
-    showSortIconHeader,
-  }: SurfixProps<TData, TValue>) => ReactNode | ReactNode[];
-export type ToolbarDataTableProps<TData, TValue> = ({
-    table,
-    fns,
-  }: ToolbarProps<TData>) => ReactNode | ReactNode[];
-export type PaginationDataTableProps<TData, TValue> = ({
-    table,
-    fns,
-  }: PaginationProps<TData, TValue>) => ReactNode | ReactNode[];
-
 export type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  toolbarTable?: ToolbarDataTableProps<TData, TValue>;
-  paginationTable?: PaginationDataTableProps<TData, TValue>;
+  toolbarTable?: ({
+    table,
+    fns,
+  }: ToolbarProps<TData>) => ReactNode | ReactNode[];
+  paginationTable?: ({
+    table,
+    fns,
+  }: PaginationProps<TData, TValue>) => ReactNode | ReactNode[];
   isLoading?: boolean;
   classNames?: TableClassNames;
   alternate?: "even" | "odd";
   alternateColor?: string;
   emptyLabel?: string;
   showSortIconHeader?: boolean;
-  surfix?: SurfixDataTableProps<TData, TValue>;
+  surfix?: ({
+    header,
+    showSortIconHeader,
+  }: SurfixProps<TData, TValue>) => ReactNode | ReactNode[];
   enableSort?: boolean;
   useTableProps?: UseTableProps<TData, TValue>;
   initialState?: InitialTableState;
