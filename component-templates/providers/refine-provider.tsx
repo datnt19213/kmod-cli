@@ -18,23 +18,23 @@ import Cookies from 'js-cookie';
 export interface Pagination {
   current?: number;
   pageSize?: number;
-  mode?: 'server' | 'client';
+  mode?: "server" | "client";
 }
 
 export interface Sorter {
   field: string;
-  order: 'asc' | 'desc';
+  order: "asc" | "desc";
 }
 
-export type FilterOperator = 
-  | 'eq' 
-  | 'ne' 
-  | 'lt' 
-  | 'lte' 
-  | 'gt' 
-  | 'gte' 
-  | 'in' 
-  | 'contains';
+export type FilterOperator =
+  | "eq"
+  | "ne"
+  | "lt"
+  | "lte"
+  | "gt"
+  | "gte"
+  | "in"
+  | "contains";
 
 export interface Filter {
   field: string;
@@ -93,7 +93,7 @@ export interface DeleteManyParams {
 
 export interface CustomParams extends AxiosRequestConfig {
   url?: string;
-  method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
+  method?: "get" | "post" | "put" | "patch" | "delete";
   payload?: any;
   query?: Record<string, any>;
   headers?: Record<string, string>;
@@ -162,6 +162,11 @@ export interface UseMutationOptions<TData = any> {
 
 export type Payload = any;
 
+type ApiError = {
+  message: string;
+  statusCode?: number;
+};
+
 // ============ UTILITY FUNCTIONS ============
 
 /**
@@ -172,14 +177,14 @@ function normalizeResponseData<T>(response: any): T[] {
   if (Array.isArray(response)) {
     return response;
   }
-  
+
   // Case 2: Object with 'data' property
-  if (response && typeof response === 'object') {
-    return response
+  if (response && typeof response === "object") {
+    return response;
   }
-  
+
   // Fallback: empty array
-  console.warn('Unable to extract array data from response:', response);
+  console.warn("Unable to extract array data from response:", response);
   return [];
 }
 
@@ -188,19 +193,19 @@ function normalizeResponseData<T>(response: any): T[] {
  */
 function extractTotalCount(response: any, dataLength: number): number {
   // Check headers first
-  if (response.headers?.['x-total-count']) {
-    const count = parseInt(response.headers['x-total-count'], 10);
+  if (response.headers?.["x-total-count"]) {
+    const count = parseInt(response.headers["x-total-count"], 10);
     if (!isNaN(count)) return count;
   }
-  
+
   // Check response body
   const data = response.data;
-  if (data && typeof data === 'object') {
-    if (typeof data.total === 'number') return data.total;
-    if (typeof data.totalCount === 'number') return data.totalCount;
-    if (typeof data.count === 'number') return data.count;
+  if (data && typeof data === "object") {
+    if (typeof data.total === "number") return data.total;
+    if (typeof data.totalCount === "number") return data.totalCount;
+    if (typeof data.count === "number") return data.count;
   }
-  
+
   // Fallback to data length
   return dataLength;
 }
@@ -217,31 +222,33 @@ class DataProvider {
   private options: Required<DataProviderOptions>;
 
   constructor(
-    httpClient: AxiosInstance = axios.create(), 
-    options: DataProviderOptions = {}
+    httpClient: AxiosInstance = axios.create(),
+    options: DataProviderOptions = {},
   ) {
     this.httpClient = httpClient;
 
-    const baseURL = httpClient.defaults.baseURL || '';
-    this.apiUrl = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
-    
+    const baseURL = httpClient.defaults.baseURL || "";
+    this.apiUrl = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
+
     if (!this.apiUrl) {
-      console.warn('[DataProvider] No baseURL found in httpClient. Please set baseURL when creating httpClient.');
+      console.warn(
+        "[DataProvider] No baseURL found in httpClient. Please set baseURL when creating httpClient.",
+      );
     }
-    
+
     this.cache = new Map();
     this.options = {
       cacheTime: 5 * 60 * 1000,
       retryCount: 1,
       retryDelay: 1000,
       debug: false,
-      ...options
+      ...options,
     };
   }
 
   private log(message: string, data?: any): void {
     if (this.options.debug) {
-      console.log(`[DataProvider] ${message}`, data || '');
+      // console.log(`[DataProvider] ${message}`, data || '');
     }
   }
 
@@ -253,43 +260,46 @@ class DataProvider {
   private getCache<T = any>(key: string): T | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
-    
+
     const now = Date.now();
     if (now - cached.timestamp > this.options.cacheTime) {
       this.cache.delete(key);
-      this.log('Cache expired', key);
+      //  this.log('Cache expired', key);
       return null;
     }
-    
-    this.log('Cache hit', key);
+
+    //  this.log('Cache hit', key);
     return cached.data as T;
   }
 
   private setCache<T = any>(key: string, data: T): void {
     this.cache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    this.log('Cache set', key);
+    //  this.log('Cache set', key);
   }
 
   public invalidateCache(resource: string, id?: string | number): void {
     const keys = Array.from(this.cache.keys());
-    
+
     if (id !== undefined) {
       // Invalidate specific item and related lists
-      keys.forEach(key => {
-        if (key.startsWith(`${resource}:`) || key.startsWith(`${resource}/${id}:`)) {
+      keys.forEach((key) => {
+        if (
+          key.startsWith(`${resource}:`) ||
+          key.startsWith(`${resource}/${id}:`)
+        ) {
           this.cache.delete(key);
-          this.log('Cache invalidated', key);
+          //  this.log('Cache invalidated', key);
         }
       });
     } else {
       // Invalidate entire resource
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (key.startsWith(`${resource}:`)) {
           this.cache.delete(key);
-          this.log('Cache invalidated', key);
+          //  this.log('Cache invalidated', key);
         }
       });
     }
@@ -297,371 +307,382 @@ class DataProvider {
 
   public clearAllCache(): void {
     this.cache.clear();
-    this.log('All cache cleared');
+    //  this.log('All cache cleared');
   }
 
   // Retry logic
   private async retryRequest<T>(
-    fn: () => Promise<T>, 
-    retries: number = this.options.retryCount
+    fn: () => Promise<T>,
+    retries: number = this.options.retryCount,
   ): Promise<T> {
     try {
       return await fn();
     } catch (error) {
       if (retries <= 0) throw error;
-      
+
       // Don't retry on 4xx errors (client errors)
       const axiosError = error as AxiosError;
       if (
-        axiosError.response && 
-        axiosError.response.status >= 400 && 
+        axiosError.response &&
+        axiosError.response.status >= 400 &&
         axiosError.response.status < 500
       ) {
         throw error;
       }
-      
-      this.log(`Retrying... (${this.options.retryCount - retries + 1}/${this.options.retryCount})`);
-      
-      await new Promise(resolve => 
-        setTimeout(resolve, this.options.retryDelay)
+
+      //  this.log(`Retrying... (${this.options.retryCount - retries + 1}/${this.options.retryCount})`);
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.options.retryDelay),
       );
-      
+
       return this.retryRequest(fn, retries - 1);
     }
   }
 
   // CRUD Methods
   async getList<T = any>(
-    resource: string, 
-    params: GetListParams = {}, 
-    useCache: boolean = true
+    resource: string,
+    params: GetListParams = {},
+    useCache: boolean = true,
   ): Promise<GetListResponse<T>> {
     const cacheKey = this.getCacheKey(resource, params);
-    
+
     if (useCache) {
       const cached = this.getCache<GetListResponse<T>>(cacheKey);
       if (cached) return cached;
     }
-    
+
     const { pagination, filters, sorters, meta } = params;
     const url = `${this.apiUrl}/${resource}`;
     const query: Record<string, any> = {};
-    
+
     if (pagination) {
       const { current = 1, pageSize = 10 } = pagination;
       query._start = (current - 1) * pageSize;
       query._limit = pageSize;
     }
-    
+
     if (sorters && sorters.length > 0) {
-      query._sort = sorters.map(s => s.field).join(',');
-      query._order = sorters.map(s => s.order).join(',');
+      query._sort = sorters.map((s) => s.field).join(",");
+      query._order = sorters.map((s) => s.order).join(",");
     }
-    
+
     if (filters && filters.length > 0) {
-      filters.forEach(filter => {
+      filters.forEach((filter) => {
         const { field, operator, value } = filter;
         switch (operator) {
-          case 'eq': 
-            query[field] = value; 
+          case "eq":
+            query[field] = value;
             break;
-          case 'ne': 
-            query[`${field}_ne`] = value; 
+          case "ne":
+            query[`${field}_ne`] = value;
             break;
-          case 'lt': 
-            query[`${field}_lt`] = value; 
+          case "lt":
+            query[`${field}_lt`] = value;
             break;
-          case 'lte': 
-            query[`${field}_lte`] = value; 
+          case "lte":
+            query[`${field}_lte`] = value;
             break;
-          case 'gt': 
-            query[`${field}_gt`] = value; 
+          case "gt":
+            query[`${field}_gt`] = value;
             break;
-          case 'gte': 
-            query[`${field}_gte`] = value; 
+          case "gte":
+            query[`${field}_gte`] = value;
             break;
-          case 'in': 
-            query[`${field}_in`] = Array.isArray(value) ? value.join(',') : value; 
+          case "in":
+            query[`${field}_in`] = Array.isArray(value)
+              ? value.join(",")
+              : value;
             break;
-          case 'contains': 
-            query[`${field}_like`] = value; 
+          case "contains":
+            query[`${field}_like`] = value;
             break;
         }
       });
     }
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`GET ${url}`, query);
-        
-        const response = await this.httpClient.get(url, { 
+        //  this.log(`GET ${url}`, query);
+
+        const response = await this.httpClient.get(url, {
           params: query,
-          ...meta 
+          ...meta,
         });
-        
+
         const data = normalizeResponseData<T>(response.data);
         const total = extractTotalCount(response, data.length);
-        
-        this.log(`Response: ${data.length} items, total: ${total}`);
-        
+
+        //  this.log(`Response: ${data.length} items, total: ${total}`);
+
         return { data, total };
       });
-      
+
       if (useCache) {
         this.setCache(cacheKey, result);
       }
-      
+
       return result;
     } catch (error) {
-      this.log('Error in getList', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async getOne<T = any>(
-    resource: string, 
-    params: GetOneParams, 
-    useCache: boolean = true
+    resource: string,
+    params: GetOneParams,
+    useCache: boolean = true,
   ): Promise<GetOneResponse<T>> {
     const { id, meta } = params;
     const cacheKey = this.getCacheKey(`${resource}/${id}`, {});
-    
+
     if (useCache) {
       const cached = this.getCache<GetOneResponse<T>>(cacheKey);
       if (cached) return cached;
     }
-    
+
     const url = `${this.apiUrl}/${resource}/${id}`;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`GET ${url}`);
+        //  this.log(`GET ${url}`);
         const response = await this.httpClient.get<T>(url, meta);
-        
+
         // Handle wrapped response
-        const data = (response.data as any) || response
-        
+        const data = (response.data as any) || response;
+
         return { data };
       });
-      
+
       if (useCache) {
         this.setCache(cacheKey, result);
       }
-      
+
       return result;
     } catch (error) {
-      this.log('Error in getOne', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async getMany<T = any>(
-    resource: string, 
-    params: GetManyParams, 
-    useCache: boolean = true
+    resource: string,
+    params: GetManyParams,
+    useCache: boolean = true,
   ): Promise<GetManyResponse<T>> {
     const { ids, meta } = params;
     const url = `${this.apiUrl}/${resource}`;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`GET ${url} with ids`, ids);
-        
+        //  this.log(`GET ${url} with ids`, ids);
+
         const response = await this.httpClient.get(url, {
           params: { id: ids },
-          ...meta
+          ...meta,
         });
-        
+
         const data = normalizeResponseData<T>(response.data);
-        
+
         return { data };
       });
-      
+
       return result;
     } catch (error) {
-      this.log('Error in getMany', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async create<T = any, V = any>(
-    resource: string, 
-    params: CreateParams<V>
+    resource: string,
+    params: CreateParams<V>,
   ): Promise<CreateResponse<T>> {
     const { variables, meta } = params;
     const url = `${this.apiUrl}/${resource}`;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`POST ${url}`, variables);
+        //  this.log(`POST ${url}`, variables);
         const response = await this.httpClient.post<T>(url, variables, meta);
-        
+
         // Handle wrapped response
-        const data = (response.data as any) || response
-        
+        const data = (response.data as any) || response;
+
         return { data };
       });
-      
+
       this.invalidateCache(resource);
       return result;
     } catch (error) {
-      this.log('Error in create', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async createMany<T = any, V = any>(
-    resource: string, 
-    params: CreateManyParams<V>
+    resource: string,
+    params: CreateManyParams<V>,
   ): Promise<GetManyResponse<T>> {
     const { variables, meta } = params;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`POST MANY ${this.apiUrl}/${resource}`, variables);
-        
+        //  this.log(`POST MANY ${this.apiUrl}/${resource}`, variables);
+
         const responses = await Promise.all(
-          variables.map(variable =>
-            this.httpClient.post<T>(`${this.apiUrl}/${resource}`, variable, meta)
-          )
+          variables.map((variable) =>
+            this.httpClient.post<T>(
+              `${this.apiUrl}/${resource}`,
+              variable,
+              meta,
+            ),
+          ),
         );
-        
-        const data = responses.map(r => (r.data as any)?.data || r.data);
-        
+
+        const data = responses.map((r) => (r.data as any)?.data || r.data);
+
         return { data };
       });
-      
+
       this.invalidateCache(resource);
       return result;
     } catch (error) {
-      this.log('Error in createMany', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async update<T = any, V = any>(
-    resource: string, 
-    params: UpdateParams<V>
+    resource: string,
+    params: UpdateParams<V>,
   ): Promise<UpdateResponse<T>> {
     const { id, variables, meta } = params;
     const url = `${this.apiUrl}/${resource}/${id}`;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`PATCH ${url}`, variables);
+        //  this.log(`PATCH ${url}`, variables);
         const response = await this.httpClient.patch<T>(url, variables, meta);
-        
+
         // Handle wrapped response
-        const data = (response.data as any) || response
-        
+        const data = (response.data as any) || response;
+
         return { data };
       });
-      
+
       this.invalidateCache(resource, id);
       return result;
     } catch (error) {
-      this.log('Error in update', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async updateMany<T = any, V = any>(
-    resource: string, 
-    params: UpdateManyParams<V>
+    resource: string,
+    params: UpdateManyParams<V>,
   ): Promise<GetManyResponse<T>> {
     const { ids, variables, meta } = params;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`PATCH MANY ${this.apiUrl}/${resource}`, { ids, variables });
-        
+        //  this.log(`PATCH MANY ${this.apiUrl}/${resource}`, { ids, variables });
+
         const responses = await Promise.all(
-          ids.map(id =>
+          ids.map((id) =>
             this.httpClient.patch<T>(
               `${this.apiUrl}/${resource}/${id}`,
               variables,
-              meta
-            )
-          )
+              meta,
+            ),
+          ),
         );
-        
-        const data = responses.map(r => (r.data as any)?.data || r.data);
-        
+
+        const data = responses.map((r) => (r.data as any)?.data || r.data);
+
         return { data };
       });
-      
-      ids.forEach(id => this.invalidateCache(resource, id));
+
+      ids.forEach((id) => this.invalidateCache(resource, id));
       return result;
     } catch (error) {
-      this.log('Error in updateMany', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async deleteOne<T = any>(
-    resource: string, 
-    params: DeleteOneParams
+    resource: string,
+    params: DeleteOneParams,
   ): Promise<DeleteResponse<T>> {
     const { id, meta } = params;
     const url = `${this.apiUrl}/${resource}/${id}`;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`DELETE ${url}`);
+        //  this.log(`DELETE ${url}`);
         const response = await this.httpClient.delete<T>(url, meta);
-        
+
         // Handle wrapped response
-        const data = (response.data as any) || response
-        
+        const data = (response.data as any) || response;
+
         return { data };
       });
-      
+
       this.invalidateCache(resource, id);
       return result;
     } catch (error) {
-      this.log('Error in deleteOne', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async deleteMany<T = any>(
-    resource: string, 
-    params: DeleteManyParams
+    resource: string,
+    params: DeleteManyParams,
   ): Promise<GetManyResponse<T>> {
     const { ids, meta } = params;
-    
+
     try {
       const result = await this.retryRequest(async () => {
-        this.log(`DELETE MANY ${this.apiUrl}/${resource}`, ids);
-        
+        //  this.log(`DELETE MANY ${this.apiUrl}/${resource}`, ids);
+
         const responses = await Promise.all(
-          ids.map(id =>
-            this.httpClient.delete<T>(`${this.apiUrl}/${resource}/${id}`, meta)
-          )
+          ids.map((id) =>
+            this.httpClient.delete<T>(`${this.apiUrl}/${resource}/${id}`, meta),
+          ),
         );
-        
-        const data = responses.map(r => (r.data as any)?.data || r.data);
-        
+
+        const data = responses.map((r) => (r.data as any)?.data || r.data);
+
         return { data };
       });
-      
-      ids.forEach(id => this.invalidateCache(resource, id));
+
+      ids.forEach((id) => this.invalidateCache(resource, id));
       return result;
     } catch (error) {
-      this.log('Error in deleteMany', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   async custom<T = any>(params: CustomParams): Promise<CustomResponse<T>> {
-    const { url , method = 'get', payload, query, headers } = params;
+    const { url, method = "get", payload, query, headers } = params;
 
-    if (!url) throw this.handleError("No url provided");
+    if (!url) {
+      return Promise.reject({
+        message: "No url provided",
+        statusCode: 0,
+      });
+    }
     try {
       return await this.retryRequest(async () => {
         // if url is not absolute, assume it's a relative path
-        const requestUrl = url.startsWith('http') ? url : url;
-        this.log(`${method.toUpperCase()} ${requestUrl}`, { payload, query });
+        const requestUrl = url.startsWith("http") ? url : url;
+        //  this.log(`${method.toUpperCase()} ${requestUrl}`, { payload, query });
 
         const response = await this.httpClient<T>({
           url: requestUrl,
@@ -671,40 +692,38 @@ class DataProvider {
           headers,
         });
 
-        
         return { data: (response?.data as any) || response };
       });
     } catch (error) {
-      this.log('Error in custom', error);
-      throw this.handleError(error);
+      const apiError = this.handleError(error);
+      return Promise.reject(apiError);
     }
   }
 
   private handleError(error: unknown): DataProviderError {
     const axiosError = error as AxiosError<any>;
-    
+
     if (axiosError.response) {
-      const responseData = axiosError.response.data;
-      
+      const data = axiosError.response.data;
+
+      this.log("API ERROR", {
+        status: axiosError.response.status,
+        data,
+      });
+
       return {
-        message: responseData?.message || 
-                 responseData?.error || 
-                 axiosError.message || 
-                 'Request failed',
+        message: data?.message || data?.error || "Request failed",
         statusCode: axiosError.response.status,
-        errors: responseData?.errors || responseData?.details,
-      };
-    } else if (axiosError.request) {
-      return {
-        message: 'Network error - no response received',
-        statusCode: 0,
       };
     }
-    
-    return {
-      message: (error as Error).message || 'Unknown error',
-      statusCode: 0,
-    };
+
+    if (axiosError.request) {
+      this.log("NETWORK ERROR", axiosError.request);
+      return { message: "Network error", statusCode: 0 };
+    }
+
+    this.log("UNKNOWN ERROR", error);
+    return { message: "Unknown error", statusCode: 0 };
   }
 }
 
@@ -715,7 +734,7 @@ export const DataProviderContext = createContext<DataProvider | null>(null);
 export function useList<T = any>(
   resource: string,
   params: GetListParams = {},
-  options: UseListOptions = {}
+  options: UseListOptions = {},
 ) {
   const [data, setData] = useState<T[] | T | any | null>(null);
   const [total, setTotal] = useState<number>(0);
@@ -723,20 +742,23 @@ export function useList<T = any>(
   const [error, setError] = useState<DataProviderError | null>(null);
 
   const dataProvider = useDataProvider();
-  
+
   const { refetchInterval, enabled = true } = options;
   const paramsStr = JSON.stringify(params);
-  
+
   const refetch = useCallback(async () => {
     if (!enabled) {
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
-      const result = await dataProvider.getList<T>(resource, JSON.parse(paramsStr));
+      const result = await dataProvider.getList<T>(
+        resource,
+        JSON.parse(paramsStr),
+      );
       setData(result.data || []);
       setTotal(result.total || 0);
     } catch (err) {
@@ -747,40 +769,40 @@ export function useList<T = any>(
       setLoading(false);
     }
   }, [dataProvider, resource, paramsStr, enabled]);
-  
+
   useEffect(() => {
     refetch();
   }, [refetch]);
-  
+
   useEffect(() => {
     if (refetchInterval && enabled) {
       const interval = setInterval(refetch, refetchInterval);
       return () => clearInterval(interval);
     }
   }, [refetchInterval, refetch, enabled]);
-  
+
   return { data: data || [], total, loading, error, refetch };
 }
 
 export function useOne<T = any>(
   resource: string,
   id: string | number | null | undefined,
-  options: UseOneOptions = {}
+  options: UseOneOptions = {},
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<DataProviderError | null>(null);
 
   const dataProvider = useDataProvider();
-  
+
   const { enabled = true } = options;
-  
+
   const refetch = useCallback(async () => {
     if (!enabled || !id) {
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -793,73 +815,36 @@ export function useOne<T = any>(
       setLoading(false);
     }
   }, [dataProvider, resource, id, enabled]);
-  
+
   useEffect(() => {
     refetch();
   }, [refetch]);
-  
+
   return { data, loading, error, refetch };
 }
 
 export function useCreate<T = any, V = any>(
   resource: string,
   options: UseMutationOptions<T>,
-  meta?:AxiosRequestConfig
-) {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<DataProviderError | null>(null);
-  
-  const dataProvider = useDataProvider();
-
-  const { onSuccess, onError } = options;
-  
-  const mutate = useCallback(async (variables: V): Promise<T> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await dataProvider.create<T, V>(resource, { 
-        variables,
-        meta,
-       });
-      if (onSuccess) {
-        onSuccess(result.data);
-      }
-      return result.data;
-    } catch (err) {
-      const errorObj = err as DataProviderError;
-      setError(errorObj);
-      if (onError) {
-        onError(errorObj);
-      }
-      throw errorObj;
-    } finally {
-      setLoading(false);
-    }
-  }, [dataProvider, resource, onSuccess, onError]);
-  
-  return { mutate, loading, error };
-}
-
-export function useUpdate<T = any, V = any>(
-  resource: string,
-  options: UseMutationOptions<T>,
-  meta?: AxiosRequestConfig
+  meta?: AxiosRequestConfig,
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
 
   const dataProvider = useDataProvider();
-  
+
   const { onSuccess, onError } = options;
-  
+
   const mutate = useCallback(
-    async (id: string | number, variables: Partial<V>): Promise<T> => {
+    async (variables: V): Promise<T | undefined> => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        const result = await dataProvider.update<T, V>(resource, { id, variables, meta });
+        const result = await dataProvider.create<T, V>(resource, {
+          variables,
+          meta,
+        });
         if (onSuccess) {
           onSuccess(result.data);
         }
@@ -867,37 +852,80 @@ export function useUpdate<T = any, V = any>(
       } catch (err) {
         const errorObj = err as DataProviderError;
         setError(errorObj);
-        if (onError) {
-          onError(errorObj);
-        }
-        throw errorObj;
+        onError?.(errorObj);
+        return;
       } finally {
         setLoading(false);
       }
-    }, 
-    [dataProvider, resource, onSuccess, onError]
+    },
+    [dataProvider, resource, onSuccess, onError],
   );
-  
+
+  return { mutate, loading, error };
+}
+
+export function useUpdate<T = any, V = any>(
+  resource: string,
+  options: UseMutationOptions<T>,
+  meta?: AxiosRequestConfig,
+) {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<DataProviderError | null>(null);
+
+  const dataProvider = useDataProvider();
+
+  const { onSuccess, onError } = options;
+
+  const mutate = useCallback(
+    async (
+      id: string | number,
+      variables: Partial<V>,
+    ): Promise<T | undefined> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await dataProvider.update<T, V>(resource, {
+          id,
+          variables,
+          meta,
+        });
+        if (onSuccess) {
+          onSuccess(result.data);
+        }
+        return result.data;
+      } catch (err) {
+        const errorObj = err as DataProviderError;
+        setError(errorObj);
+        onError?.(errorObj);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataProvider, resource, onSuccess, onError],
+  );
+
   return { mutate, loading, error };
 }
 
 export function useDelete<T = any>(
   resource: string,
   options: UseMutationOptions<T>,
-  meta?: AxiosRequestConfig
+  meta?: AxiosRequestConfig,
 ) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<DataProviderError | null>(null);
 
   const dataProvider = useDataProvider();
-  
+
   const { onSuccess, onError } = options;
-  
+
   const mutate = useCallback(
-    async (id: string | number): Promise<T> => {
+    async (id: string | number): Promise<T | undefined> => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const result = await dataProvider.deleteOne<T>(resource, { id, meta });
         if (onSuccess) {
@@ -907,17 +935,15 @@ export function useDelete<T = any>(
       } catch (err) {
         const errorObj = err as DataProviderError;
         setError(errorObj);
-        if (onError) {
-          onError(errorObj);
-        }
-        throw errorObj;
+        onError?.(errorObj);
+        return;
       } finally {
         setLoading(false);
       }
-    }, 
-    [dataProvider, resource, onSuccess, onError]
+    },
+    [dataProvider, resource, onSuccess, onError],
   );
-  
+
   return { mutate, loading, error };
 }
 
@@ -934,7 +960,7 @@ export function useCustom<T = any>(
   const { onSuccess, onError } = options;
 
   const mutate = useCallback(
-    async (variables?: Payload): Promise<T> => {
+    async (variables?: Payload): Promise<T | undefined> => {
       setLoading(true);
       setError(null);
 
@@ -945,7 +971,7 @@ export function useCustom<T = any>(
           method: options.method,
           headers: options.headers,
           query: options.query,
-          ...options
+          ...options,
         });
         if (onSuccess) {
           onSuccess(result.data);
@@ -955,15 +981,13 @@ export function useCustom<T = any>(
       } catch (err) {
         const errorObj = err as DataProviderError;
         setError(errorObj);
-        if (onError) {
-          onError(errorObj);
-        }
-        throw errorObj;
+        onError?.(errorObj);
+        return;
       } finally {
         setLoading(false);
       }
     },
-    [dataProvider, resource, onSuccess, onError]
+    [dataProvider, resource, onSuccess, onError],
   );
 
   return { mutate, loading, error, data: customData };
@@ -986,7 +1010,7 @@ export const useDataProvider = () => {
   const ctx = useContext(DataProviderContext);
   if (!ctx) {
     throw new Error(
-      "useDataProvider must be used inside <DataProviderContainer />"
+      "useDataProvider must be used inside <DataProviderContainer />",
     );
   }
   return ctx;
@@ -1004,27 +1028,29 @@ export const useDataProvider = () => {
  */
 
 export interface ICreateHttpClientOptions {
-  tokenName?: string ;
+  tokenName?: string;
   tokenStorage?: "local" | "session" | "cookie" | "http-only";
   authorizationType?: "Bearer" | "Basic" | string;
   withCredentials?: boolean;
 }
 
-export  interface ICreateHttpClient {
+export interface ICreateHttpClient {
   url?: string;
-  options?: ICreateHttpClientOptions
+  options?: ICreateHttpClientOptions;
 }
-export function createHttpClient({url, options = {}}:ICreateHttpClient): AxiosInstance {
+export function createHttpClient({
+  url,
+  options = {},
+}: ICreateHttpClient): AxiosInstance {
   const {
     tokenName = "token",
     tokenStorage = "http-only",
     authorizationType = "Bearer",
   } = options;
-  
+
   const withCredentials =
     options.withCredentials ?? tokenStorage === "http-only";
 
-  
   const axiosInstance = axios.create({
     baseURL: url || "https://api.example.com",
     withCredentials,
@@ -1047,8 +1073,8 @@ export function createHttpClient({url, options = {}}:ICreateHttpClient): AxiosIn
         break;
 
       case "http-only":
-        // NO READ 
-        // HttpOnly cookies are not accessible via JavaScript 
+        // NO READ
+        // HttpOnly cookies are not accessible via JavaScript
         // Browser will send it automatically
         break;
     }
@@ -1056,7 +1082,7 @@ export function createHttpClient({url, options = {}}:ICreateHttpClient): AxiosIn
     // Just set token if available in storage
     if (token) {
       config.headers.Authorization = `${authorizationType} ${token}`;
-    } 
+    }
 
     return config;
   });
@@ -1065,7 +1091,6 @@ export function createHttpClient({url, options = {}}:ICreateHttpClient): AxiosIn
 }
 
 // ================================ AUTH ================================
-
 
 export interface AuthUser {
   id: string | number;
@@ -1134,7 +1159,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<AuthProviderProps> = ({
   children,
   urls,
-  tokenKey = 'token',
+  tokenKey = "token",
   keysCleanUpOnLogout = ["token"],
 }) => {
   const dataProvider = useDataProvider();
@@ -1148,7 +1173,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     sessionStorage.removeItem(key);
   }
 
-  const login = useCallback(async (payload: LoginPayload, type: TypeResponse = "full") => {
+  const login = useCallback(
+    async (payload: LoginPayload, type: TypeResponse = "full") => {
       try {
         const res = await dataProvider.custom<any>({
           url: loginUrl,
@@ -1161,39 +1187,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
         return res;
       } catch (error) {
-        throw error;
+        if (error instanceof Error) return Promise.reject(error);
+        return Promise.reject(error);
       }
-    }
-  , [dataProvider, loginUrl]);
+    },
+    [dataProvider, loginUrl],
+  );
 
-  const logout = useCallback(async (params: CustomParams, type: TypeResponse = "full") => {
-
-    try {
-      const res = await dataProvider.custom<any>({
-        url: params.url || logoutUrl,
-        ...params,
-      });
-
-      if (type === "simple") {
-        return res.data;
-      }
-      
-      return res;
-    } catch (error) {
-      throw error;
-    } finally {
-      setUser(null);
-      dataProvider.clearAllCache();
-      if(Array.isArray(keysCleanUpOnLogout)){
-        keysCleanUpOnLogout.forEach((key) => {
-          removeKeys(key);
+  const logout = useCallback(
+    async (params: CustomParams, type: TypeResponse = "full") => {
+      try {
+        const res = await dataProvider.custom<any>({
+          url: params.url || logoutUrl,
+          ...params,
         });
-      } else {
-        removeKeys(keysCleanUpOnLogout);
+
+        if (type === "simple") {
+          return res.data;
+        }
+
+        return res;
+      } catch (error) {
+        if (error instanceof Error) return Promise.reject(error);
+        return Promise.reject(error);
+      } finally {
+        setUser(null);
+        dataProvider.clearAllCache();
+        if (Array.isArray(keysCleanUpOnLogout)) {
+          keysCleanUpOnLogout.forEach((key) => {
+            removeKeys(key);
+          });
+        } else {
+          removeKeys(keysCleanUpOnLogout);
+        }
       }
-    }
-    
-  }, [dataProvider, logoutUrl]);
+    },
+    [dataProvider, logoutUrl],
+  );
 
   const isAuthenticated = () => {
     return user !== null;
@@ -1202,26 +1232,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     return cookiesProvider.get(tokenKey);
   }, [tokenKey]);
 
-  const getMe = useCallback(async (type?: TypeResponse) => {
-    try {
-      const res = await dataProvider.custom<AuthUser>({
-        url: meUrl,
-        method: 'get',
-      });
+  const getMe = useCallback(
+    async (type?: TypeResponse) => {
+      try {
+        const res = await dataProvider.custom<AuthUser>({
+          url: meUrl,
+          method: "get",
+        });
 
-      if (type === "simple") {
-        return res.data;
+        if (type === "simple") {
+          return res.data;
+        }
+        return res;
+      } catch {
+        return null;
       }
-      return res;
-    } catch {
-      return null;
-    }
-  }, [dataProvider, meUrl]);
+    },
+    [dataProvider, meUrl],
+  );
 
   useEffect(() => {
     getMe().then((u: any) => u && setUser(u));
   }, [getMe]);
-
 
   const value: AuthContextValue = {
     user,
@@ -1232,7 +1264,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     logout,
     getMe,
   };
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
@@ -1251,16 +1282,13 @@ export const cookiesProvider = {
   },
 
   remove: (name: string) => {
-    Cookies.remove(name, {path: "/"});
+    Cookies.remove(name, { path: "/" });
   },
 
-  
   exists: (name: string): boolean => {
     return Cookies.get(name) !== undefined;
   },
 };
-
-
 
 // =================== Example ===================
 
@@ -1268,16 +1296,15 @@ export const cookiesProvider = {
 
 // const TOKEN = "token";
 
-  // const httpClient = createHttpClient({
-  //   url: `${process.env.NEXT_PUBLIC_API_URL}`,
-  //   options: {
-  //     authorizationType: "Bearer",
-  //     tokenName: TOKEN,
-  //     tokenStorage: "cookie",
-  //     withCredentials: true, --- optionals (default to true if tokenStorage is "http-only")
-  //   },
-  // });
-
+// const httpClient = createHttpClient({
+//   url: `${process.env.NEXT_PUBLIC_API_URL}`,
+//   options: {
+//     authorizationType: "Bearer",
+//     tokenName: TOKEN,
+//     tokenStorage: "cookie",
+//     withCredentials: true, --- optionals (default to true if tokenStorage is "http-only")
+//   },
+// });
 
 // create dataProvider
 
@@ -1293,15 +1320,14 @@ export const cookiesProvider = {
 
 // wrapped all into:
 // <DataProvider  dataProvider={dataProvider}>
-//   <AuthProvider 
-//      urls={urls} --> api_login 
-//      tokenKey={TOKEN} 
+//   <AuthProvider
+//      urls={urls} --> api_login
+//      tokenKey={TOKEN}
 //      keysCleanUpOnLogout={keysRemoveOnLogout} --> optional (default to ["token"]) - additional keys to clean up on logout
 //   >
 //     <App />
 //   </AuthProvider>
 // </DataProvider>
-
 
 // use hooks to auth
 
