@@ -96,6 +96,9 @@ export type ValidationRules<T> = Partial<{
   [K in keyof T]: ValidationRule<T[K]>;
 }>;
 
+type SetValuesAction<T> =
+  | Partial<T>
+  | ((prev: T) => Partial<T>);
 
 type ValidationErrors<T> = {
   [K in keyof T]?: string;
@@ -111,7 +114,7 @@ export const useFormValidator = <T extends Record<string, any>>(
   const [touched, setTouched] = useState<Touched<T>>({});
 
 
-const validateField = <K extends keyof T>(
+  const validateField = <K extends keyof T>(
     field: K,
     value: T[K],
     isTouched = false,
@@ -185,7 +188,7 @@ const validateField = <K extends keyof T>(
 
 
   // validate array of fields
-const validateFields = (fields: readonly (keyof T)[]): boolean => {
+  const validateFields = (fields: readonly (keyof T)[]): boolean => {
     let isValid = true;
     const newErrors: ValidationErrors<T> = {};
 
@@ -216,6 +219,66 @@ const validateFields = (fields: readonly (keyof T)[]): boolean => {
     setErrors({});
     setTouched({});
   };
+  const setValuesWithTouched = (
+    action: SetValuesAction<T>,
+    options?: {
+      validate?: boolean;
+      touchAll?: boolean;
+      isSubmit?: boolean;
+    }
+  ) => {
+    const {
+      validate = true,
+      touchAll = false,
+      isSubmit = false,
+    } = options || {};
+
+    setValues((prev) => {
+      const nextPartial =
+        typeof action === "function"
+          ? action(prev)
+          : action;
+
+      const merged = { ...prev, ...nextPartial };
+
+      const newTouched: Touched<T> = {};
+      const newErrors: ValidationErrors<T> = {};
+
+      const fields = touchAll
+        ? (Object.keys(merged) as (keyof T)[])
+        : (Object.keys(nextPartial) as (keyof T)[]);
+
+      fields.forEach((field) => {
+        newTouched[field] = true;
+
+        if (validate) {
+          const error = validateField(
+            field,
+            merged[field],
+            true,
+            isSubmit
+          );
+          newErrors[field] = error;
+        }
+      });
+
+      setTouched((prevTouched) => ({
+        ...prevTouched,
+        ...newTouched,
+      }));
+
+      if (validate) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          ...newErrors,
+        }));
+      }
+
+      return merged;
+    });
+  };
+
+
 
 
   return {
@@ -227,19 +290,21 @@ const validateFields = (fields: readonly (keyof T)[]): boolean => {
     validateAllFields,
     setValues,
     resetForm,
+    setValuesWithTouched,
   };
 };
+
 
 
 // import { useFormValidator, REGEXS } from '@/utils/validate/simple-validate';
 
 // const validationRules = {
-//   username: { required: true, pattern: REGEXS.username, errorMessage: "Username must be 3-20 alphanumeric characters." },
-//   password: { required: true, pattern: REGEXS.password, errorMessage: "Password must contain letters, numbers, and be at least 8 characters." },
+//   email: { required: true, pattern: REGEXS.email, errorMessage: "Please enter a valid email." },
+//   password: { required: true, minLength: 6, errorMessage: "Password must be at least 6 characters." },
 // };
 
 // const { values, errors, handleChange, validateAllFields } = useFormValidator(
-//   { username: '', password: '' },
+//   { email: '', password: '' },
 //   validationRules
 // );
 
