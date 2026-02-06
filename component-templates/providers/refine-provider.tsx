@@ -135,10 +135,30 @@ export interface DataProviderError {
 }
 
 export interface DataProviderOptions {
+  /**
+   * Time to live for cached data (default: 5 * 60 * 1000) - 5 minutes
+   */
   cacheTime?: number;
+  /**
+   * Time to live for stale data (default: 5 * 60 * 1000) - 5 minutes
+   */
+  staleTime?: number;
+  /**
+   * Retry count (default: 1)
+   */
   retryCount?: number;
+  /**
+   * Retry delay (ms) (default: 1000) - 1 second
+   */
   retryDelay?: number;
+  /**
+   * Debug mode (default: false)
+   */
   debug?: boolean;
+  /**
+   * Persist data in memory, local storage, or session storage (default: memory)
+   */
+  persist?: "memory" | "local" | "session";
 }
 
 interface CacheItem<T = any> {
@@ -149,6 +169,7 @@ interface CacheItem<T = any> {
 export interface UseListOptions {
   refetchInterval?: number;
   enabled?: boolean;
+  cache?: boolean;
 }
 
 export interface UseOneOptions {
@@ -221,6 +242,8 @@ class DataProvider {
   private cache: Map<string, CacheItem>;
   private options: Required<DataProviderOptions>;
 
+  private cachePrefix = "__DP_CACHE__:";
+
   constructor(
     httpClient: AxiosInstance = axios.create(),
     options: DataProviderOptions = {},
@@ -239,11 +262,31 @@ class DataProvider {
     this.cache = new Map();
     this.options = {
       cacheTime: 5 * 60 * 1000,
+      staleTime: 30 * 1000,
+      persist: "memory",
       retryCount: 1,
       retryDelay: 1000,
       debug: false,
       ...options,
     };
+
+    this.cache = new Map();
+    this.loadPersistCache();
+  }
+
+  private loadPersistCache() {
+    if (this.options.persist === "memory") return;
+
+    const storage =
+      this.options.persist === "local" ? localStorage : sessionStorage;
+
+    Object.keys(storage).forEach((key) => {
+      if (!key.startsWith(this.cachePrefix)) return;
+      try {
+        const value = JSON.parse(storage.getItem(key)!);
+        this.cache.set(key.replace(this.cachePrefix, ""), value);
+      } catch {}
+    });
   }
 
   private log(message: string, data?: any): void {
@@ -257,27 +300,40 @@ class DataProvider {
     return `${resource}:${JSON.stringify(params || {})}`;
   }
 
-  private getCache<T = any>(key: string): T | null {
+  private getCache<T>(key: string): {
+    data: T;
+    isStale: boolean;
+  } | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
-    const now = Date.now();
-    if (now - cached.timestamp > this.options.cacheTime) {
+    const age = Date.now() - cached.timestamp;
+
+    if (age > this.options.cacheTime) {
       this.cache.delete(key);
-      //  this.log('Cache expired', key);
       return null;
     }
 
-    //  this.log('Cache hit', key);
-    return cached.data as T;
+    return {
+      data: cached.data as T,
+      isStale: age > this.options.staleTime,
+    };
   }
 
-  private setCache<T = any>(key: string, data: T): void {
-    this.cache.set(key, {
+  private setCache<T>(key: string, data: T) {
+    const item = {
       data,
       timestamp: Date.now(),
-    });
-    //  this.log('Cache set', key);
+    };
+
+    this.cache.set(key, item);
+
+    if (this.options.persist !== "memory") {
+      const storage =
+        this.options.persist === "local" ? localStorage : sessionStorage;
+
+      storage.setItem(this.cachePrefix + key, JSON.stringify(item));
+    }
   }
 
   public invalidateCache(resource: string, id?: string | number): void {
@@ -347,10 +403,21 @@ class DataProvider {
     useCache: boolean = true,
   ): Promise<GetListResponse<T>> {
     const cacheKey = this.getCacheKey(resource, params);
+    const cached = useCache
+      ? this.getCache<GetListResponse<T>>(cacheKey)
+      : null;
 
-    if (useCache) {
-      const cached = this.getCache<GetListResponse<T>>(cacheKey);
-      if (cached) return cached;
+    if (cached) {
+      if (!cached.isStale) {
+        return cached.data;
+      }
+
+      // stale → trả data cũ + background refetch
+      this.getList(resource, params, false).then((fresh) => {
+        this.setCache(cacheKey, fresh);
+      });
+
+      return cached.data;
     }
 
     const { pagination, filters, sorters, meta } = params;
@@ -437,10 +504,16 @@ class DataProvider {
   ): Promise<GetOneResponse<T>> {
     const { id, meta } = params;
     const cacheKey = this.getCacheKey(`${resource}/${id}`, {});
+    const cached = useCache ? this.getCache<GetOneResponse<T>>(cacheKey) : null;
 
-    if (useCache) {
-      const cached = this.getCache<GetOneResponse<T>>(cacheKey);
-      if (cached) return cached;
+    if (cached) {
+      if (!cached.isStale) return cached.data;
+
+      this.getOne(resource, params, false).then((fresh) => {
+        this.setCache(cacheKey, fresh);
+      });
+
+      return cached.data;
     }
 
     const url = `${this.apiUrl}/${resource}/${id}`;
@@ -743,32 +816,36 @@ export function useList<T = any>(
 
   const dataProvider = useDataProvider();
 
-  const { refetchInterval, enabled = true } = options;
+  const { refetchInterval, enabled = true, cache = true } = options;
   const paramsStr = JSON.stringify(params);
 
-  const refetch = useCallback(async () => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
+  const refetch = useCallback(
+    async (force = false) => {
+      if (!enabled) {
+        setLoading(false);
+        return;
+      }
 
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await dataProvider.getList<T>(
-        resource,
-        JSON.parse(paramsStr),
-      );
-      setData(result.data || []);
-      setTotal(result.total || 0);
-    } catch (err) {
-      setError(err as DataProviderError);
-      setData([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [dataProvider, resource, paramsStr, enabled]);
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await dataProvider.getList<T>(
+          resource,
+          JSON.parse(paramsStr),
+          !force,
+        );
+        setData(result.data || []);
+        setTotal(result.total || 0);
+      } catch (err) {
+        setError(err as DataProviderError);
+        setData([]);
+        setTotal(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataProvider, resource, paramsStr, enabled],
+  );
 
   useEffect(() => {
     refetch();
@@ -797,24 +874,27 @@ export function useOne<T = any>(
 
   const { enabled = true } = options;
 
-  const refetch = useCallback(async () => {
-    if (!enabled || !id) {
-      setLoading(false);
-      return;
-    }
+  const refetch = useCallback(
+    async (force = false) => {
+      if (!enabled || !id) {
+        setLoading(false);
+        return;
+      }
 
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await dataProvider.getOne<T>(resource, { id });
-      setData(result.data);
-    } catch (err) {
-      setError(err as DataProviderError);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [dataProvider, resource, id, enabled]);
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await dataProvider.getOne<T>(resource, { id }, !force);
+        setData(result.data);
+      } catch (err) {
+        setError(err as DataProviderError);
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataProvider, resource, id, enabled],
+  );
 
   useEffect(() => {
     refetch();
@@ -1290,78 +1370,158 @@ export const cookiesProvider = {
   },
 };
 
-// =================== Example ===================
-
-// create httpClient - (can create multiple httpClients for different apis)
+// =================== 1. Create httpClient ===================
 
 // const TOKEN = "token";
 
 // const httpClient = createHttpClient({
-//   url: `${process.env.NEXT_PUBLIC_API_URL}`,
+//   url: process.env.NEXT_PUBLIC_API_URL,
 //   options: {
 //     authorizationType: "Bearer",
 //     tokenName: TOKEN,
-//     tokenStorage: "cookie",
-//     withCredentials: true, --- optionals (default to true if tokenStorage is "http-only")
+//     tokenStorage: "cookie", // or "http-only" | "local" | "session"
+//     withCredentials: true,  // optional (auto true if tokenStorage = "http-only")
 //   },
 // });
 
-// create dataProvider
+// =================== 2. Create DataProvider ===================
 
-// const dataProvider = useDataProvider(httpClient);
+// IMPORTANT:
+// persist !== "memory"  --> to CACHE data and prevent F5 from calling API again
+
+// const dataProvider = new DataProvider(httpClient, {
+//   persist: "session",     // "memory" | "session" | "local"
+//   cacheTime: 5 * 60 * 1000, // 5 minutes
+//   staleTime: 30 * 1000,     // 30 seconds
+// });
+
+// =================== 3. Auth Provider URLs ===================
 
 // const urls = {
-//     loginUrl: "/auth/login", --> api_login
-//     logoutUrl: "/auth/logout", --> api_logout
-//     meUrl: "/auth/me", --> api_get_me_by_token
-//   }
+//   loginUrl: "/auth/login",   // POST
+//   logoutUrl: "/auth/logout", // POST
+//   meUrl: "/auth/me",         // GET (by token)
+// };
 
-//   const keysRemoveOnLogout = [TOKEN, "refreshToken", "user"];
+// const keysRemoveOnLogout = [TOKEN, "refreshToken", "user"];
 
-// wrapped all into:
-// <DataProvider  dataProvider={dataProvider}>
+// =================== 4. Wrap Providers ===================
+
+// <DataProviderContainer dataProvider={dataProvider}>
 //   <AuthProvider
-//      urls={urls} --> api_login
-//      tokenKey={TOKEN}
-//      keysCleanUpOnLogout={keysRemoveOnLogout} --> optional (default to ["token"]) - additional keys to clean up on logout
+//     urls={urls}
+//     tokenKey={TOKEN}
+//     keysCleanUpOnLogout={keysRemoveOnLogout}
 //   >
 //     <App />
 //   </AuthProvider>
-// </DataProvider>
+// </DataProviderContainer>
 
-// use hooks to auth
+// =================== 5. Auth Hooks ===================
 
-// const { login, logout, refresh } = useAuth();
+// const { login, logout, getMe, isAuthenticated } = useAuth();
 
-// use hook to call apis
+// =================== 6. useList ===================
 
-// const { data, isLoading, error } = useList<DataResponse>({
-//   url: '/route_name',
+// Auto load on mount
+// Use cache if exists (F5 will NOT refetch if persist !== memory)
+
+// const {
+//   data,
+//   total,
+//   loading,
+//   error,
+//   refetch,
+// } = useList<User>(
+//   "users",
+//   {
+//     meta: {
+//       params: {
+//         role: "admin",
+//       },
+//     },
+//   },
+//   {
+//     cache: true,
+//   },
+// );
+
+// Force refetch (bypass cache)
+// refetch(true);
+
+// =================== 7. useOne ===================
+
+// const {
+//   data,
+//   loading,
+//   error,
+//   refetch,
+// } = useOne<User>(
+//   "users",
+//   userId,
+//   {
+//     enabled: !!userId,
+//   },
+// );
+
+// Force refetch (ignore cache)
+// refetch(true);
+
+// =================== 8. useCreate ===================
+
+// const { mutate, loading, error } = useCreate<User, CreateUserPayload>(
+//   "users",
+//   {
+//     onSuccess: (data) => {
+//       console.log("Created:", data);
+//     },
+//   },
+// );
+
+// mutate({
+//   name: "John",
+//   email: "john@mail.com",
 // });
 
-// const { data, isLoading, error } = useOne<DataResponse>({
-//   url: '/route_name/:id',
-//   id: 1,
+// =================== 9. useUpdate ===================
+
+// const { mutate, loading, error } = useUpdate<User, UpdateUserPayload>(
+//   "users",
+//   {
+//     onSuccess: (data) => {
+//       console.log("Updated:", data);
+//     },
+//   },
+// );
+
+// mutate(1, {
+//   name: "New name",
 // });
 
-// const { data, isLoading, error } = useCreate<DataResponse>({
-//   url: '/route_name',
-//   payload: {},
-// });
+// =================== 10. useDelete ===================
 
-// const { data, isLoading, error } = useUpdate<DataResponse>({
-//   url: '/route_name/:id',
-//   id: 1,
-//   payload: {},
-// });
+// const { mutate, loading } = useDelete<User>(
+//   "users",
+//   {
+//     onSuccess: () => {
+//       console.log("Deleted");
+//     },
+//   },
+// );
 
-// const { data, isLoading, error } = useDelete<DataResponse>({
-//   url: '/route_name/:id',
-//   id: 1,
-// });
+// mutate(1);
 
-// const { data, isLoading, error } = useCustom<DataResponse>({
-//   url: '/route_name or api_url/route/...',
-//   method: 'post',
-//   payload: {},
-// });
+// =================== 11. useCustom ===================
+
+// const { mutate, data, loading, error } = useCustom<CustomResponse>(
+//   "/reports/export",
+//   {
+//     method: "post",
+//     payload: {
+//       from: "2024-01-01",
+//       to: "2024-12-31",
+//     },
+//   },
+// );
+
+// mutate();
