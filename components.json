@@ -1,46 +1,32 @@
 {
   "access-denied": {
     "path": "component-templates/components/access-denied.tsx",
-    "dependencies": [
-      "lucide-react"
-    ],
+    "dependencies": ["lucide-react"],
     "devDependencies": []
   },
   "breadcumb": {
     "path": "component-templates/components/breadcumb.tsx",
-    "dependencies": [
-      "lucide-react"
-    ],
+    "dependencies": ["lucide-react"],
     "devDependencies": []
   },
   "count-down": {
     "path": "component-templates/hooks/count-down.ts",
-    "dependencies": [
-      "zustand"
-    ],
+    "dependencies": ["zustand"],
     "devDependencies": []
   },
   "count-input": {
     "path": "component-templates/components/count-input.tsx",
-    "dependencies": [
-      "lucide-react"
-    ],
+    "dependencies": ["lucide-react"],
     "devDependencies": []
   },
   "button": {
     "path": "component-templates/components/datetime-picker/button.tsx",
-    "dependencies": [
-      "class-variance-authority",
-      "@radix-ui/react-slot"
-    ],
+    "dependencies": ["class-variance-authority", "@radix-ui/react-slot"],
     "devDependencies": []
   },
   "calendar": {
     "path": "component-templates/components/datetime-picker/calendar.tsx",
-    "dependencies": [
-      "lucide-react",
-      "react-day-picker"
-    ],
+    "dependencies": ["lucide-react", "react-day-picker"],
     "devDependencies": []
   },
   "date-input": {
@@ -50,47 +36,32 @@
   },
   "date-range-picker": {
     "path": "component-templates/components/date-range-calendar/date-range-picker.tsx",
-    "dependencies": [
-      "@radix-ui/react-icons"
-    ],
+    "dependencies": ["@radix-ui/react-icons"],
     "devDependencies": []
   },
   "label": {
     "path": "component-templates/components/datetime-picker/label.tsx",
-    "dependencies": [
-      "class-variance-authority",
-      "@radix-ui/react-label"
-    ],
+    "dependencies": ["class-variance-authority", "@radix-ui/react-label"],
     "devDependencies": []
   },
   "popover": {
     "path": "component-templates/components/datetime-picker/popover.tsx",
-    "dependencies": [
-      "@radix-ui/react-popover"
-    ],
+    "dependencies": ["@radix-ui/react-popover"],
     "devDependencies": []
   },
   "select": {
     "path": "component-templates/components/datetime-picker/select.tsx",
-    "dependencies": [
-      "@radix-ui/react-icons",
-      "@radix-ui/react-select"
-    ],
+    "dependencies": ["@radix-ui/react-icons", "@radix-ui/react-select"],
     "devDependencies": []
   },
   "switch": {
     "path": "component-templates/components/date-range-calendar/switch.tsx",
-    "dependencies": [
-      "@radix-ui/react-switch"
-    ],
+    "dependencies": ["@radix-ui/react-switch"],
     "devDependencies": []
   },
   "datetime-picker": {
     "path": "component-templates/components/datetime-picker/datetime-picker.tsx",
-    "dependencies": [
-      "date-fns",
-      "lucide-react"
-    ],
+    "dependencies": ["date-fns", "lucide-react"],
     "devDependencies": []
   },
   "input": {
@@ -125,16 +96,12 @@
   },
   "gradient-svg": {
     "path": "component-templates/components/gradient-svg.tsx",
-    "dependencies": [
-      "react-svg"
-    ],
+    "dependencies": ["react-svg"],
     "devDependencies": []
   },
   "grid-layout": {
     "path": "component-templates/components/grid-layout.tsx",
-    "dependencies": [
-      "tailwind-merge"
-    ],
+    "dependencies": ["tailwind-merge"],
     "devDependencies": []
   },
   "hydrate-guard": {
@@ -168,17 +135,12 @@
   },
   "modal": {
     "path": "component-templates/components/modal.tsx",
-    "dependencies": [
-      "react-dom"
-    ],
+    "dependencies": ["react-dom"],
     "devDependencies": []
   },
   "multi-select": {
     "path": "component-templates/components/multi-select.tsx",
-    "dependencies": [
-      "class-variance-authority",
-      "lucide-react"
-    ],
+    "dependencies": ["class-variance-authority", "lucide-react"],
     "devDependencies": []
   },
   "non-hydration": {
@@ -188,9 +150,7 @@
   },
   "portal": {
     "path": "component-templates/components/portal.tsx",
-    "dependencies": [
-      "react-dom"
-    ],
+    "dependencies": ["react-dom"],
     "devDependencies": []
   },
   "scroll-spy": {
@@ -205,9 +165,7 @@
   },
   "single-select": {
     "path": "component-templates/components/single-select.tsx",
-    "dependencies": [
-      "lucide-react"
-    ],
+    "dependencies": ["lucide-react"],
     "devDependencies": []
   },
   "stroke-circle": {
@@ -217,23 +175,17 @@
   },
   "column-table": {
     "path": "component-templates/components/table/column-table.tsx",
-    "dependencies": [
-      "@tanstack/react-table"
-    ],
+    "dependencies": ["@tanstack/react-table"],
     "devDependencies": []
   },
   "data-table": {
     "path": "component-templates/components/table/data-table.tsx",
-    "dependencies": [
-      "@tanstack/react-table"
-    ],
+    "dependencies": ["@tanstack/react-table"],
     "devDependencies": []
   },
   "readme": {
     "path": "component-templates/components/table/readme.tsx",
-    "dependencies": [
-      "@tanstack/react-table"
-    ],
+    "dependencies": ["@tanstack/react-table"],
     "devDependencies": []
   },
   "table": {
@@ -243,9 +195,7 @@
   },
   "text-hover-effect": {
     "path": "component-templates/components/text-hover-effect.tsx",
-    "dependencies": [
-      "motion/react"
-    ],
+    "dependencies": ["motion"],
     "devDependencies": []
   },
   "timout-loader": {
@@ -255,10 +205,7 @@
   },
   "toast": {
     "path": "component-templates/components/toast.tsx",
-    "dependencies": [
-      "react-dom",
-      "lucide-react"
-    ],
+    "dependencies": ["react-dom", "lucide-react"],
     "devDependencies": []
   },
   "config": {
@@ -278,9 +225,7 @@
   },
   "api-service": {
     "path": "component-templates/core/api-service.ts",
-    "dependencies": [
-      "axios"
-    ],
+    "dependencies": ["axios"],
     "devDependencies": []
   },
   "calculate": {
@@ -290,17 +235,12 @@
   },
   "idb": {
     "path": "component-templates/core/idb.ts",
-    "dependencies": [
-      "idb"
-    ],
+    "dependencies": ["idb"],
     "devDependencies": []
   },
   "lib": {
     "path": "component-templates/core/lib.ts",
-    "dependencies": [
-      "clsx",
-      "tailwind-merge"
-    ],
+    "dependencies": ["clsx", "tailwind-merge"],
     "devDependencies": []
   },
   "storage": {
@@ -315,9 +255,7 @@
   },
   "safe-action": {
     "path": "component-templates/hooks/safe-action.ts",
-    "dependencies": [
-      "lodash"
-    ],
+    "dependencies": ["lodash"],
     "devDependencies": []
   },
   "spam-guard": {
@@ -327,10 +265,7 @@
   },
   "utils": {
     "path": "component-templates/lib/utils.ts",
-    "dependencies": [
-      "clsx",
-      "tailwind-merge"
-    ],
+    "dependencies": ["clsx", "tailwind-merge"],
     "devDependencies": []
   },
   "feature-guard": {
@@ -345,10 +280,7 @@
   },
   "refine-provider": {
     "path": "component-templates/providers/refine-provider.tsx",
-    "dependencies": [
-      "axios",
-      "js-cookie"
-    ],
+    "dependencies": ["axios", "js-cookie"],
     "devDependencies": []
   },
   "query": {
@@ -358,9 +290,7 @@
   },
   "color-by-text": {
     "path": "component-templates/utils/colors/color-by-text.ts",
-    "dependencies": [
-      "unidecode"
-    ],
+    "dependencies": ["unidecode"],
     "devDependencies": []
   },
   "stripe-effect": {
@@ -370,21 +300,22 @@
   },
   "kookies": {
     "path": "component-templates/utils/cookies/kookies.ts",
-    "dependencies": [
-      "js-cookie"
-    ],
+    "dependencies": ["js-cookie"],
+    "devDependencies": []
+  },
+  "fanhash": {
+    "path": "component-templates/utils/hash/fanhash.ts",
+    "dependencies": [],
     "devDependencies": []
   },
   "hash-aes": {
     "path": "component-templates/utils/hash/hash-aes.ts",
-    "dependencies": [
-      "crypto-js"
-    ],
+    "dependencies": ["crypto-js"],
     "devDependencies": []
   },
   "simple-validate": {
     "path": "component-templates/utils/validator/simple-validate.ts",
-    "dependencies": [],
+    "dependencies": ["@/utils/validate/simple-validate"],
     "devDependencies": []
   }
 }

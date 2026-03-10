@@ -1,0 +1,107 @@
+/**
+ * SHA_256 clearly
+ */
+function _sha256Internal(ascii: string): string {
+    const rightRotate = (v: number, a: number): number => (v >>> a) | (v << (32 - a));
+    const maxWord = Math.pow(2, 32);
+    let hash = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    const k = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+
+    let str = ascii + '\x80';
+    while (str.length % 64 - 56) str += '\x00';
+    const words: number[] = [];
+    for (let i = 0; i < str.length; i++) words[i >> 2] |= str.charCodeAt(i) << ((3 - i) % 4) * 8;
+    words[words.length] = ((ascii.length * 8 / maxWord) | 0);
+    words[words.length] = (ascii.length * 8 | 0);
+
+    for (let j = 0; j < words.length;) {
+        const w = words.slice(j, j += 16);
+        const oldHash = [...hash];
+        for (let i = 0; i < 64; i++) {
+            if (i >= 16) {
+                const s0 = rightRotate(w[i - 15], 7) ^ rightRotate(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+                const s1 = rightRotate(w[i - 2], 17) ^ rightRotate(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+                w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+            }
+            const t1 = (hash[7] + (rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25)) + ((hash[4] & hash[5]) ^ (~hash[4] & hash[6])) + k[i] + (w[i] | 0)) | 0;
+            const t2 = ((rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22)) + ((hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]))) | 0;
+            hash = [(t1 + t2) | 0, ...hash.slice(0, 7)];
+            hash[4] = (hash[4] + t1) | 0;
+        }
+        for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+    return hash.map(h => (h >>> 0).toString(16).padStart(8, '0')).join('');
+}
+
+/**
+ * Encrypts a password
+ */
+export function encryptFanHash(password: string, useXor: boolean = false): string {
+    const hex = _sha256Internal(password);
+    const data: Uint8Array = new Uint8Array(hex.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+    const n: number = 61 + (password.length % 11);
+
+    for (let k = 0; k < n; k++) {
+        const offset = k % data.length;
+        for (let i = offset; i < data.length - 1; i += 2) {
+            // Permutation (Swap)
+            [data[i], data[i + 1]] = [data[i + 1], data[i]];
+            // Bitwise XOR
+            if (useXor) {
+                const charCode = password.charCodeAt(i % password.length);
+                data[i] ^= (charCode + k) % 256;
+            }
+        }
+    }
+    const finalHex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+    return finalHex.match(/.{1,8}/g)!.join('.');
+}
+
+/**
+ * Verifies a stored FanHash against a raw password.
+ */
+export function verifyFanHash(password: string, storedHash: string, useXor: boolean = false): boolean {
+    const clean = storedHash.replace(/\./g, '');
+    const data: Uint8Array = new Uint8Array(clean.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+    const n: number = 61 + (password.length % 11);
+
+    for (let k = n - 1; k >= 0; k--) {
+        const offset = k % data.length;
+        for (let i = offset; i < data.length - 1; i += 2) {
+            if (useXor) {
+                const charCode = password.charCodeAt(i % password.length);
+                data[i] ^= (charCode + k) % 256;
+            }
+            [data[i], data[i + 1]] = [data[i + 1], data[i]];
+        }
+    }
+    return Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('') === _sha256Internal(password);
+}
+
+/**
+ * @method encrypt
+ * @method veriify
+ */
+export class FanHashEngine {
+    public static encrypt(password: string, useXor: boolean = false): string {
+        return encryptFanHash(password, useXor);
+    }
+
+    public static verify(password: string, storedHash: string, useXor: boolean = false): boolean {
+        return verifyFanHash(password, storedHash, useXor);
+    }
+}
+
+// const myPass = "Abc@123456";
+// const myHash = encryptFanHash(myPass, true);
+// console.log("Hash:", myHash);
+// console.log("Valid:", verifyFanHash(myPass, myHash, true));

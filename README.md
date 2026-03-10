@@ -56,6 +56,7 @@ npx kumod add button # add button component
 - date-range-picker
 - datetime-picker
 - fade-on-scroll
+- fanhash
 - feature-config
 - feature-guard
 - gradient-outline
